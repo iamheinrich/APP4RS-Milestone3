@@ -1,5 +1,7 @@
 import lightning as L
 
+#added imports
+import torch
 
 class BaseModel(L.LightningModule):
     def __init__(self, args, datamodule, network):
@@ -20,15 +22,55 @@ class BaseModel(L.LightningModule):
         return self.model(x)
 
     def training_step(self, batch, batch_idx):
-        output = None
+        x, y = batch
+        #TODO check whether flattening of x necessary
+        x_hat  = self.model(x) # TODO timm models seemingly only return logits not probs, verify
+        batch_loss = self.criterion(x_hat, y)
+
+        #turn logits to probabilities for logging
+        if self.args.task == "slc":
+            probabilities = torch.softmax(x_hat, dim=1)
+        elif self.args.task == "mlc":
+            probabilities = torch.sigmoid(x_hat)
+        else:
+            raise Exception("args.task not handled!")
+
+        output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
+        self.training_step_outputs.append(output)
+        return batch_loss #TODO lightning needs loss as training step return to apply
+
+    def validation_step(self, batch, batch_idx): #TODO check training_step todos
+        x, y = batch
+        x_hat  = self.model(x)
+        batch_loss = self.criterion(x_hat, y)
+
+        #turn logits to probabilities for logging
+        if self.args.task == "slc":
+            probabilities = torch.softmax(x_hat, dim=1)
+        elif self.args.task == "mlc":
+            probabilities = torch.sigmoid(x_hat)
+        else:
+            raise Exception("args.task not handled!")
+
+        output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
+        self.validation_step_outputs.append(output)
         return output
 
-    def validation_step(self, batch, batch_idx):
-        output = None
-        return output
+    def test_step(self, batch, batch_idx): #TODO check training_step todos
+        x, y = batch
+        x_hat  = self.model(x)
+        batch_loss = self.criterion(x_hat, y)
 
-    def test_step(self, batch, batch_idx):
-        output = None
+        #turn logits to probabilities for logging
+        if self.args.task == "slc":
+            probabilities = torch.softmax(x_hat, dim=1)
+        elif self.args.task == "mlc":
+            probabilities = torch.sigmoid(x_hat)
+        else:
+            raise Exception("args.task not handled!")
+
+        output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
+        self.test_step_outputs.append(output)
         return output
 
     def on_train_epoch_end(self):
@@ -50,7 +92,12 @@ class BaseModel(L.LightningModule):
         return {'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
 
     def init_criterion(self):
-        criterion = None
+        if self.args.task == "slc":
+            criterion = torch.nn.CrossEntropyLoss()
+        elif self.args.task == "mlc":
+            criterion = torch.nn.BCEWithLogitsLoss()
+        else:
+            raise Exception("args.task not handled!")
         return criterion
 
     #################
