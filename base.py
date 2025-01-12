@@ -2,6 +2,9 @@ import lightning as L
 
 #added imports
 import torch
+from torchmetrics import MetricCollection
+from torchmetrics.classification import MulticlassAccuracy, MulticlassF1Score,MulticlassPrecision,MulticlassRecall, MultilabelAveragePrecision, MultilabelF1Score
+
 
 class BaseModel(L.LightningModule):
     def __init__(self, args, datamodule, network):
@@ -13,8 +16,11 @@ class BaseModel(L.LightningModule):
         
         self.datamodule = datamodule
         self.criterion = self.init_criterion()
+        self.train_metric_collection = self.init_metrics()
+        self.validation_metric_collection = self.init_metrics()
+        self.test_metric_collection = self.init_metrics()
 
-        self.training_step_outputs = []
+        self.training_step_outputs = [] #TODO must clear after every epoch?
         self.validation_step_outputs = []
         self.test_step_outputs = []
 
@@ -33,10 +39,13 @@ class BaseModel(L.LightningModule):
         elif self.args.task == "mlc":
             probabilities = torch.sigmoid(x_hat)
         else:
-            raise Exception("args.task not handled!")
+            raise Exception("args.task not handled in training_step!")
 
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.training_step_outputs.append(output)
+
+        self.train_metric_collection.update(probabilities, y) #TODO ask whether updating per round correct
+
         return batch_loss #TODO lightning needs loss as training step return to apply
 
     def validation_step(self, batch, batch_idx): #TODO check training_step todos
@@ -50,10 +59,13 @@ class BaseModel(L.LightningModule):
         elif self.args.task == "mlc":
             probabilities = torch.sigmoid(x_hat)
         else:
-            raise Exception("args.task not handled!")
+            raise Exception("args.task not handled in validation_step!")
 
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.validation_step_outputs.append(output)
+
+        self.validation_metric_collection.update(probabilities, y)
+
         return output
 
     def test_step(self, batch, batch_idx): #TODO check training_step todos
@@ -67,37 +79,75 @@ class BaseModel(L.LightningModule):
         elif self.args.task == "mlc":
             probabilities = torch.sigmoid(x_hat)
         else:
-            raise Exception("args.task not handled!")
+            raise Exception("args.task not handled in test_step!")
 
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.test_step_outputs.append(output)
+
+        self.test_metric_collection.update(probabilities, y)
+
         return output
 
     def on_train_epoch_end(self):
-        pass
+        """
+        Log the tracked metrics for the trainingset after each epoch
+        unpack the list of outputs and logs the respective metrics
+        """
+        self.log_dict(self.train_metric_collection.compute(), prog_bar=True)
+        #TODO how do we discern train logs from val logs?
+        """ Compare with this approach... do we want additional strings in log
+        metrics = self.validation_metric_collection(probabilities, labels)
+        for name, value in metrics.items():
+            self.log(f"val_{name}", value)
+        """
+
+        self.train_metric_collection.reset()
+        self.training_step_outputs.clear() #TODO ask whether restting output list is correct
 
     def on_validation_epoch_end(self):
-        pass
+        """
+        Log the tracked metrics for the validation set after each epoch
+        unpack the list of outputs and logs the respective metrics
+        """
+        self.log_dict(self.validation_metric_collection.compute(), prog_bar=True)
+
+        self.validation_metric_collection.reset()
+        self.validation_step_outputs.clear()
 
     def on_test_epoch_end(self):
-        pass
+        """
+        Log after the training has finished 
+            the test performance of the >>>>>BEST<<<<< model.
+        unpack the list of outputs and logs the respective metrics
+        """
+        # TODO select the >>>>>BEST<<<<< model then compute&log like in train&val
+            # best model through checkpoints? 
+            # does this necessiate change of train_step and val_step metric tracking
+            # how many test epochs are there??? only one after multiple train&val epochs ?
+
+        self.test_metric_collection.reset()
+        self.test_step_outputs.clear()
 
     ########################
     # CRITERION & OPTIMIZER
     ########################
 
     def configure_optimizers(self):
-        optimizer = None
-        lr_scheduler = None
+        optimizer = torch.optim.AdamW(lr=self.args.learning_rate,weight_decay=self.args.weight_decay)
+        lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(max_lr=, # max_lr needs to be bigger than base lr
+                                                           epochs=self.args.epochs,
+                                                           steps_per_epoch= len(self.datamodule.train_dataloader()),  #TODO ask about specifications; also ask for max_lr and pct_start
+                                                           pct_start= # ???
+                                                           )
         return {'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
 
-    def init_criterion(self):
+    def init_criterion(self): #TODO init new criterion perr call???
         if self.args.task == "slc":
             criterion = torch.nn.CrossEntropyLoss()
         elif self.args.task == "mlc":
             criterion = torch.nn.BCEWithLogitsLoss()
         else:
-            raise Exception("args.task not handled!")
+            raise Exception("args.task not handled in init_criterion!")
         return criterion
 
     #################
@@ -105,6 +155,47 @@ class BaseModel(L.LightningModule):
     #################
 
     # implement functionality for logging here
+
+    def init_metrics(self): #TODO init new MMetricCollection per call??
+
+        num_classes = self.args.number_classes
+
+        if self.args.task == "slc":
+
+            self.best_metric = "f1_macro"    #TODO ask wether this is the best for multispectral slc
+
+            #Accuracy, F1Score, Precision and Recall in micro, macro and per class
+            metrics_collection = MetricCollection({
+                "accuracy_micro": MulticlassAccuracy(num_classes, average="micro"),
+                "accuracy_macro": MulticlassAccuracy(num_classes, average="macro"),
+                "accuracy_none": MulticlassAccuracy(num_classes, average="none"),
+                "f1_micro": MulticlassF1Score(num_classes, average="micro"),
+                "f1_macro": MulticlassF1Score(num_classes, average="macro"),
+                "f1_none": MulticlassF1Score(num_classes, average="none"),
+                "precision_micro": MulticlassPrecision(num_classes, average="micro"),
+                "precision_macro": MulticlassPrecision(num_classes, average="macro"),
+                "precision_none": MulticlassPrecision(num_classes, average="none"),
+                "recall_micro": MulticlassRecall(num_classes, average="micro"),
+                "recall_macro": MulticlassRecall(num_classes, average="macro"),
+                "recall_none": MulticlassRecall(num_classes, average="none"),
+            })
+        elif self.args.task == "mlc":
+
+            self.best_metric = "average_precision_macro"    #TODO ask wether this is the best for multispectral mlc
+
+            #veragePrecision and F1Score in micro, macro and per class 
+            metrics_collection = MetricCollection({
+                "average_precision_micro": MultilabelAveragePrecision(num_classes, average="micro"),
+                "average_precision_macro": MultilabelAveragePrecision(num_classes, average="macro"),
+                "average_precision_none": MultilabelAveragePrecision(num_classes, average="none"),
+                "f1_micro": MultilabelF1Score(num_classes, average="micro"),
+                "f1_macro": MultilabelF1Score(num_classes, average="macro"),
+                "f1_none": MultilabelF1Score(num_classes, average="none"),
+            })
+        else:
+            raise Exception("args.task not handled!")
+        
+        return metrics_collection
 
     ####################
     # DATA RELATED HOOKS
