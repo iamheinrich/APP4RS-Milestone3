@@ -17,7 +17,10 @@ def run_training():
         "--arch_name", "abcdefg",
         "--epochs", "1",
         "--learning_rate", "0.0",
-        "--weight_decay", "0.0"
+        "--weight_decay", "0.0",
+
+        "--max_lr", "0.0",  #added   # should be bigger than learning_rate
+        "--pct_start", "0.0" #added  # 0.3 in benchmark task
     ]
 
     # Run the command synchronously and capture output
