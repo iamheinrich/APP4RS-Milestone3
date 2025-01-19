@@ -27,6 +27,10 @@ parser.add_argument('--learning_rate', type=float)
 parser.add_argument('--weight_decay', type=float)
 
 
+#added
+parser.add_argument('--learning_rate', type=float)
+parser.add_argument('--weight_decay', type=float)
+
 def experiments():
     args = parser.parse_args()
 
