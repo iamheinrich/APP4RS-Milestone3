@@ -56,13 +56,13 @@ def experiments():
     model = BaseModel(args, datamodule, network)
 
     checkpoint_callback = ModelCheckpoint(
-        monitor=model.best_metric,
+        monitor=model.best_validation_metric,
         dirpath="untracked-files",
-        filename=f"{args.arch_name}-{args.task}-{{epoch:d}}-{{{model.best_metric}:.3f}}"
+        filename=f"{args.arch_name}-{args.task}-{{epoch:d}}-{{{model.best_validation_metric}:.3f}}"
     )
 
     #TODO ignore these parameters: , min_delta=0.00, verbose=False ?
-    early_stopping_callback = EarlyStopping(monitor=model.best_metric, patience=args.patience, mode="max")
+    early_stopping_callback = EarlyStopping(monitor=model.best_validation_metric, patience=args.patience, mode="max")
 
     wandb_logger = WandbLogger(
         project="milestone3",
@@ -83,7 +83,7 @@ def experiments():
     trainer.fit(model,datamodule)
 
     best_model_path = trainer.checkpoint_callback.best_model_path # can also be called without trainer.
-    best_model = BaseModel.load_from_checkpoint(best_model_path)
+    best_model = BaseModel.load_from_checkpoint(checkpoint_path=best_model_path, args=args, datamodule=datamodule, network=network)
 
     #TODO reusing same trainer should be no problem right?
     trainer.test(best_model,datamodule)

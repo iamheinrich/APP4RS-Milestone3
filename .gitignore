@@ -4,3 +4,4 @@
 /untracked-files
 /dataset_conversion
 .vscode
+/wandb

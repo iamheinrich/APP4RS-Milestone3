@@ -95,8 +95,12 @@ class BaseModel(L.LightningModule):
         """
         metrics = self.metric_collection.compute()
 
-        for metric_name, computed_value in metrics.items():
-            self.log(f"train_{metric_name}", computed_value, prog_bar=True)
+        for metric_name, computed in metrics.items():
+            if computed.ndim > 0: # this targets the metrics where average=none whereby we can log the metric per classs
+                for idx, value in enumerate(computed):
+                    self.log(f"train_{metric_name}_class_{idx}", value, prog_bar=True)
+            else:
+                self.log(f"train_{metric_name}", computed, prog_bar=True)
 
         self.metric_collection.reset()
         self.training_step_outputs.clear()
@@ -108,8 +112,12 @@ class BaseModel(L.LightningModule):
         """
         metrics = self.metric_collection.compute()
 
-        for metric_name, computed_value in metrics.items():
-            self.log(f"validation_{metric_name}", computed_value, prog_bar=True)
+        for metric_name, computed in metrics.items():
+            if computed.ndim > 0: # this targets the metrics where average=none whereby we can log the metric per classs
+                for idx, value in enumerate(computed):
+                    self.log(f"validation_{metric_name}_class_{idx}", value, prog_bar=True)
+            else:
+                self.log(f"validation_{metric_name}", computed, prog_bar=True)
 
         self.metric_collection.reset()
         self.validation_step_outputs.clear()
@@ -122,8 +130,12 @@ class BaseModel(L.LightningModule):
         """
         metrics = self.metric_collection.compute()
 
-        for metric_name, computed_value in metrics.items():
-            self.log(f"test_{metric_name}", computed_value, prog_bar=True)
+        for metric_name, computed in metrics.items():
+            if computed.ndim > 0: # this targets the metrics where average=none whereby we can log the metric per classs
+                for idx, value in enumerate(computed):
+                    self.log(f"test_{metric_name}_class_{idx}", value, prog_bar=True)
+            else:
+                self.log(f"test_{metric_name}", computed, prog_bar=True)
 
         self.metric_collection.reset()
         self.test_step_outputs.clear()
@@ -133,8 +145,9 @@ class BaseModel(L.LightningModule):
     ########################
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(lr=self.args.learning_rate,weight_decay=self.args.weight_decay)
-        lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(max_lr=self.args.max_lr,
+        optimizer = torch.optim.AdamW(self.model.parameters(),lr=self.args.learning_rate,weight_decay=self.args.weight_decay)
+        lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer=optimizer,
+                                                           max_lr=self.args.max_lr,
                                                            epochs=self.args.epochs,
                                                            steps_per_epoch= len(self.datamodule.train_dataloader()),
                                                            pct_start=self.args.pct_start
@@ -162,7 +175,7 @@ class BaseModel(L.LightningModule):
 
         if self.args.task == "slc":
 
-            self.best_metric = "f1_macro"
+            self.best_validation_metric = "validation_f1_macro"
 
             #Accuracy, F1Score, Precision and Recall in micro, macro and per class
             metrics_collection = MetricCollection({
@@ -181,7 +194,7 @@ class BaseModel(L.LightningModule):
             })
         elif self.args.task == "mlc":
 
-            self.best_metric = "average_precision_macro"
+            self.best_validation_metric = "validation_average_precision_macro"
 
             #veragePrecision and F1Score in micro, macro and per class 
             metrics_collection = MetricCollection({
