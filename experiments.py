@@ -9,6 +9,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from data.data_BEN import BENDataModule
 from data.data_EuroSAT import EuroSATDataModule
 from data.caltech101 import Caltech101DataModule
+from pytorch_lightning.loggers import WandbLogger
 
 parser = argparse.ArgumentParser(prog='APP4RS', description='Run Experiments.')
 
@@ -63,8 +64,15 @@ def experiments():
     #TODO ignore these parameters: , min_delta=0.00, verbose=False ?
     early_stopping_callback = EarlyStopping(monitor=model.best_metric, patience=args.patience, mode="max")
 
+    wandb_logger = WandbLogger(
+        project="milestone3",
+        log_model=True,
+        offline=True
+    )
+
     trainer = Trainer(
         callbacks=[checkpoint_callback,early_stopping_callback],
+        logger=wandb_logger,
         accelerator='gpu',
         devices=[0],
         enable_checkpointing=True,
