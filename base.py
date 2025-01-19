@@ -67,16 +67,6 @@ class BaseModel(L.LightningModule):
         return output
 
     def test_step(self, batch, batch_idx):
-
-        # TODO select the >>>>>BEST<<<<< model then compute&log like in train&val
-            # best model through checkpoints? YES!!!! NOT IMPLEMENTED YET
-            # does this necessiate change of train_step and val_step metric tracking
-
-        you give callbacks to the trainer
-
-        model checkpoint 
-
-
         x, y = batch
         x_hat  = self.model(x)
         batch_loss = self.criterion(x_hat, y)
@@ -100,9 +90,7 @@ class BaseModel(L.LightningModule):
         """
         Log the tracked metrics for the trainingset after each epoch
         unpack the list of outputs and logs the respective metrics TODO TODO TODO TODO TODO why unpack list?
-        """
-
-        """ TODO
+        
         metrics = self.metric_collection(probabilities, labels) -- after unpacking list?
         """
         metrics = self.metric_collection.compute()

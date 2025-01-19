@@ -1,9 +1,10 @@
 import argparse
 
-from lightning.pytorch import Trainer
+from lightning.pytorch import Trainer, ModelCheckpoint
 
 from base import BaseModel
 
+import customCNN
 
 parser = argparse.ArgumentParser(prog='APP4RS', description='Run Experiments.')
 
@@ -34,11 +35,18 @@ parser.add_argument('--weight_decay', type=float)
 def experiments():
     args = parser.parse_args()
 
-    network = None
+    network = customCNN.get_network(args.arch_name, args.num_channels, args.num_classes, args.pretrained)
     datamodule = None
     model = BaseModel(args, datamodule, network)
 
+    checkpoint_callback = ModelCheckpoint(
+        monitor=model.best_metric,
+        dirpath="untracked-files",
+        filename=f"{args.arch_name}-{args.task}-{{epoch:d}}-{{{model.best_metric}:.3f}}"
+    )
+
     trainer = Trainer(
+        callbacks=[checkpoint_callback],
         accelerator='gpu',
         devices=[0],
         enable_checkpointing=True,
@@ -46,7 +54,10 @@ def experiments():
     )
 
     # training
-    trainer.fit(model)
+    trainer.fit(model,datamodule)
+
+    best_model_path = trainer.checkpoint_callback.best_model_path # can also be called without trainer.
+    best_model = BaseModel.load_from_checkpoint(best_model_path)
 
 
 if __name__ == "__main__":
