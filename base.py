@@ -16,9 +16,7 @@ class BaseModel(L.LightningModule):
         
         self.datamodule = datamodule
         self.criterion = self.init_criterion()
-        self.train_metric_collection = self.init_metrics()
-        self.validation_metric_collection = self.init_metrics()
-        self.test_metric_collection = self.init_metrics()
+        self.metric_collection = self.init_metrics() # reuse same collection but clear after each train epoch/val epoch/test epoch
 
         self.training_step_outputs = []
         self.validation_step_outputs = []
@@ -44,7 +42,7 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.training_step_outputs.append(output)
 
-        self.train_metric_collection.update(probabilities, y)
+        self.metric_collection.update(probabilities, y)
 
         return batch_loss #what we return is irrelevant in latest lightning version
 
@@ -64,11 +62,21 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.validation_step_outputs.append(output)
 
-        self.validation_metric_collection.update(probabilities, y)
+        self.metric_collection.update(probabilities, y)
 
         return output
 
     def test_step(self, batch, batch_idx):
+
+        # TODO select the >>>>>BEST<<<<< model then compute&log like in train&val
+            # best model through checkpoints? YES!!!! NOT IMPLEMENTED YET
+            # does this necessiate change of train_step and val_step metric tracking
+
+        you give callbacks to the trainer
+
+        model checkpoint 
+
+
         x, y = batch
         x_hat  = self.model(x)
         batch_loss = self.criterion(x_hat, y)
@@ -84,24 +92,25 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.test_step_outputs.append(output)
 
-        self.test_metric_collection.update(probabilities, y)
+        self.metric_collection.update(probabilities, y)
 
         return output
 
     def on_train_epoch_end(self):
         """
         Log the tracked metrics for the trainingset after each epoch
-        unpack the list of outputs and logs the respective metrics
-        """
-        self.log_dict(self.train_metric_collection.compute(), prog_bar=True)
-        #TODO how do we discern train logs from val logs? -> VIA PREFIX!!! NOT IMPLEMENTED YET
-        """ Compare with this approach... do we want additional strings in log
-        metrics = self.validation_metric_collection(probabilities, labels)
-        for name, value in metrics.items():
-            self.log(f"val_{name}", value)
+        unpack the list of outputs and logs the respective metrics TODO TODO TODO TODO TODO why unpack list?
         """
 
-        self.train_metric_collection.reset()
+        """ TODO
+        metrics = self.metric_collection(probabilities, labels) -- after unpacking list?
+        """
+        metrics = self.metric_collection.compute()
+
+        for metric_name, computed_value in metrics.items():
+            self.log(f"train_{metric_name}", computed_value, prog_bar=True)
+
+        self.metric_collection.reset()
         self.training_step_outputs.clear()
 
     def on_validation_epoch_end(self):
@@ -109,9 +118,12 @@ class BaseModel(L.LightningModule):
         Log the tracked metrics for the validation set after each epoch
         unpack the list of outputs and logs the respective metrics
         """
-        self.log_dict(self.validation_metric_collection.compute(), prog_bar=True)
+        metrics = self.metric_collection.compute()
 
-        self.validation_metric_collection.reset()
+        for metric_name, computed_value in metrics.items():
+            self.log(f"validation_{metric_name}", computed_value, prog_bar=True)
+
+        self.metric_collection.reset()
         self.validation_step_outputs.clear()
 
     def on_test_epoch_end(self):
@@ -120,22 +132,12 @@ class BaseModel(L.LightningModule):
             the test performance of the >>>>>BEST<<<<< model.
         unpack the list of outputs and logs the respective metrics
         """
-        # TODO select the >>>>>BEST<<<<< model then compute&log like in train&val
-            # best model through checkpoints? YES!!!! NOT IMPLEMENTED YET
-            # does this necessiate change of train_step and val_step metric tracking
-            # how many test epochs are there??? only one after multiple train&val epochs ?
-                # TODO basiert es auf benchmark task?
+        metrics = self.metric_collection.compute()
 
-        you give callbacks to the trainer
+        for metric_name, computed_value in metrics.items():
+            self.log(f"test_{metric_name}", computed_value, prog_bar=True)
 
-        model checkpoint to 
-
-        use prefix for train_/val_/test_ so that names ae globally unique
-
-
-        put model in untracked Files
-        use modelcheckpoint
-        self.test_metric_collection.reset()
+        self.metric_collection.reset()
         self.test_step_outputs.clear()
 
     ########################
@@ -174,8 +176,6 @@ class BaseModel(L.LightningModule):
 
             self.best_metric = "f1_macro"
 
-            #TODO PREFIX TODO PREFIX TODO PREFIX TODO PREFIX TODO PREFIX TODO PREFIX TODO PREFIX
-
             #Accuracy, F1Score, Precision and Recall in micro, macro and per class
             metrics_collection = MetricCollection({
                 "accuracy_micro": MulticlassAccuracy(num_classes, average="micro"),
@@ -193,7 +193,7 @@ class BaseModel(L.LightningModule):
             })
         elif self.args.task == "mlc":
 
-            self.best_metric = "average_precision_macro"    #ASKED ask wether this is the best for multispectral mlc? yes we can choose between AP macro and micro
+            self.best_metric = "average_precision_macro"
 
             #veragePrecision and F1Score in micro, macro and per class 
             metrics_collection = MetricCollection({
