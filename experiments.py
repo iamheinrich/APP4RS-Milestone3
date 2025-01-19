@@ -34,8 +34,8 @@ parser.add_argument('--weight_decay', type=float)
 
 
 #added
-parser.add_argument('--learning_rate', type=float)
-parser.add_argument('--weight_decay', type=float)
+parser.add_argument('--max_lr', type=float)
+parser.add_argument('--pct_start', type=float)
 parser.add_argument('--patience', type=int)
 
 def experiments():

@@ -53,7 +53,7 @@ def get_network(arch_name, num_channels, num_classes, pretrained):
         #https://huggingface.co/timm/vit_tiny_patch16_224.augreg_in21k
         model = timm.create_model("vit_tiny_patch16_224.augreg_in21k", pretrained=pretrained, in_chans=num_channels, img_size=112, patch_size=8, num_classes=num_classes)
     else:
-        raise NotImplementedError("This arch_name is not handled!!")
+        raise NotImplementedError(f"arch_name=={arch_name} is not handled!!")
 
     #data_config = timm.data.resolve_model_data_config(model)                    #TODO check whether necessary
     #transforms = timm.data.create_transform(**data_config, is_training=False)
