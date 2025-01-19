@@ -21,6 +21,7 @@ def run_training():
 
         "--max_lr", "0.0",  #added   # should be bigger than learning_rate
         "--pct_start", "0.0" #added  # 0.3 in benchmark task
+        "--patience", "0" #added  # 0.3 in benchmark task
     ]
 
     # Run the command synchronously and capture output
