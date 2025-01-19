@@ -158,7 +158,7 @@ class BaseModel(L.LightningModule):
 
     def init_metrics(self):
 
-        num_classes = self.args.number_classes
+        num_classes = self.args.num_classes
 
         if self.args.task == "slc":
 

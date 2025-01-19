@@ -66,15 +66,15 @@ def experiments():
 
     wandb_logger = WandbLogger(
         project="milestone3",
-        log_model=True,
+        log_model=False, #log_model uses cloud to log model checkpoints which we already implemented in another manner
         offline=True
     )
 
     trainer = Trainer(
         callbacks=[checkpoint_callback,early_stopping_callback],
         logger=wandb_logger,
-        accelerator='gpu',
-        devices=[0],
+        accelerator="auto", #TODO before set to 'gpu',    check if auto works
+        devices="auto", #TODO before set to [0], 
         enable_checkpointing=True,
         max_epochs=args.epochs,
     )
