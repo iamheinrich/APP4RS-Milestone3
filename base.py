@@ -175,7 +175,7 @@ class BaseModel(L.LightningModule):
 
         if self.args.task == "slc":
 
-            self.best_validation_metric = "validation_f1_macro"
+            self.best_validation_metric = "validation_accuracy_macro" #"validation_f1_macro"
 
             #Accuracy, F1Score, Precision and Recall in micro, macro and per class
             metrics_collection = MetricCollection({

@@ -5,23 +5,23 @@ def run_training():
     # Define the command to run your training script with arguments
     command = [
         "python", "experiments.py",  # replace with your script's filename
-        "--task", "?",
-        "--logging_dir", "/path/to/logging_dir",
-        "--dataset", "dataset",
-        "--lmdb_path", "/path/to/lmdb",
-        "--metadata_parquet_path", "/path/to/metadata",
-        "--num_channels", "33",
-        "--num_classes", "1000",
-        "--num_workers", "0",
-        "--batch_size", "1",
-        "--arch_name", "abcdefg",
-        "--epochs", "1",
-        "--learning_rate", "0.0",
-        "--weight_decay", "0.0",
+        "--task", "slc",
+        "--logging_dir", "untracked-files/logging_dir",
+        "--dataset", "tiny-BEN",
+        "--lmdb_path", "untracked-files/BigEarthNet.lmdb",
+        "--metadata_parquet_path", "untracked-files/BigEarthNet.parquet",
+        "--num_channels", "12",
+        "--num_classes", "19",
+        "--num_workers", "4",
+        "--batch_size", "32",
+        "--arch_name", "CustomCNN",
+        "--epochs", "30",
+        "--learning_rate", "0.001",
+        "--weight_decay", "0.01",
 
-        "--max_lr", "0.0",  #added   # should be bigger than learning_rate
-        "--pct_start", "0.0" #added  # 0.3 in benchmark task
-        "--patience", "0" #added  # 0.3 in benchmark task
+        "--max_lr", "0.001",  #added   # should be bigger than learning_rate
+        "--pct_start", "0.3", #added  # 0.3 in benchmark task
+        "--patience", "5" #added  # 0.3 in benchmark task
     ]
 
     # Run the command synchronously and capture output
