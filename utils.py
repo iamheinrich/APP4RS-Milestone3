@@ -15,6 +15,9 @@ def compute_channel_statistics_rs(
     Compute mean, std and percentile for each channel in BEN or EuroSAT.
     Computes for training dataset only to prevent leakage.
     Expects images in (B, C, H, W) format.
+    
+    First computes the percentile values, then uses these to normalize the data
+    before computing mean and std, matching the normalization during training.
 
     Parameters:
         data_module: Union[BENDataModule, EuroSATDataModule]
@@ -24,7 +27,7 @@ def compute_channel_statistics_rs(
     Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray]: Arrays of (means, stds, percentile_values) for each channel.
     """
-    # Process all training batches
+    # First pass: compute percentile values
     channel_values = None
     for batch in data_module.train_dataloader():
         images = batch[0].cpu().numpy()
@@ -45,10 +48,25 @@ def compute_channel_statistics_rs(
         for c in range(num_channels):
             channel_values[c].extend(images[:, c].flatten())
 
-    # Compute statistics for each channel
-    means = np.array([np.mean(channel) for channel in channel_values])
-    stds = np.array([np.std(channel) for channel in channel_values])
+    # Compute percentile values
     percentile_values = np.array([np.percentile(channel, percentile) for channel in channel_values])
+    
+    # Second pass: compute mean and std on normalized data
+    normalized_channel_values = [[] for _ in range(num_channels)]
+    
+    for batch in data_module.train_dataloader():
+        images = batch[0].cpu().numpy()
+        
+        # Normalize each channel using its percentile value
+        for c in range(num_channels):
+            # Avoid division by zero
+            denominator = percentile_values[c] if percentile_values[c] > 0 else 1e-6
+            normalized_values = np.clip(images[:, c].flatten() / denominator, 0, 1)
+            normalized_channel_values[c].extend(normalized_values)
+
+    # Compute mean and std on normalized values
+    means = np.array([np.mean(channel) for channel in normalized_channel_values])
+    stds = np.array([np.std(channel) for channel in normalized_channel_values])
     
     # Check if output dimensions are correct
     assert len(means) == num_channels, f"Expected {num_channels} channels, got {len(means)}"
@@ -96,3 +114,5 @@ def compute_channel_statistics_rgb(
     assert len(stds) == 3, f"Expected 3 channels, got {len(stds)}"
 
     return means, stds
+
+
