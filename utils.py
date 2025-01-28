@@ -1,14 +1,15 @@
 # Utility functions
 
 import numpy as np
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 from data_BEN import BENDataModule
 from data_EuroSAT import EuroSATDataModule
 from data.caltech101 import Caltech101DataModule
+import torch
 
 
 def compute_channel_statistics_rs(
-    data_module: Union[BENDataModule, EuroSATDataModule],
+    dataloader: torch.utils.data.DataLoader,
     percentile: float = 99.0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -20,7 +21,8 @@ def compute_channel_statistics_rs(
     before computing mean and std, matching the normalization during training.
 
     Parameters:
-        data_module: Union[BENDataModule, EuroSATDataModule]
+        dataloader: torch.utils.data.DataLoader
+            Dataloader for the training dataset
         percentile: float
             Percentile to compute (default: 99.0).
 
@@ -29,7 +31,7 @@ def compute_channel_statistics_rs(
     """
     # First pass: compute percentile values
     channel_values = None
-    for batch in data_module.train_dataloader():
+    for batch in dataloader:
         images = batch[0].cpu().numpy()
         
         # Verify (B, C, H, W) format
@@ -54,7 +56,7 @@ def compute_channel_statistics_rs(
     # Second pass: compute mean and std on normalized data
     normalized_channel_values = [[] for _ in range(num_channels)]
     
-    for batch in data_module.train_dataloader():
+    for batch in dataloader:
         images = batch[0].cpu().numpy()
         
         # Normalize each channel using its percentile value

@@ -309,8 +309,8 @@ def build_rs_transform_pipeline(
 # 6) Convenience Wrappers
 # -------------------------------
 def get_caltech_transform(
-    mean=(0.5, 0.5, 0.5),
-    std=(0.5, 0.5, 0.5),
+    mean,
+    std,
     apply_augmentations=False
 ):
     """
@@ -328,7 +328,8 @@ def get_remote_sensing_transform(
     percentile_values,
     mean,
     std,
-    apply_augmentations=False
+    apply_augmentations=False,
+    apply_grayscale=False
 ):
     """
     For multispectral data like BEN or EuroSAT,
@@ -338,5 +339,6 @@ def get_remote_sensing_transform(
         percentile_values=percentile_values,
         mean=mean,
         std=std,
-        apply_augmentations=apply_augmentations
+        apply_augmentations=apply_augmentations,
+        apply_grayscale=apply_grayscale
     )
