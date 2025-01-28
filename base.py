@@ -37,7 +37,7 @@ class BaseModel(L.LightningModule):
         elif self.args.task == "mlc":
             probabilities = torch.sigmoid(x_hat)
         else:
-            raise Exception("args.task not handled in training_step!")
+            raise Exception(f"args.task=={self.args.task} not handled in training_step!")
 
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.training_step_outputs.append(output)
@@ -57,7 +57,7 @@ class BaseModel(L.LightningModule):
         elif self.args.task == "mlc":
             probabilities = torch.sigmoid(x_hat)
         else:
-            raise Exception("args.task not handled in validation_step!")
+            raise Exception(f"args.task=={self.args.task} not handled in validation_step!")
 
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.validation_step_outputs.append(output)
@@ -77,7 +77,7 @@ class BaseModel(L.LightningModule):
         elif self.args.task == "mlc":
             probabilities = torch.sigmoid(x_hat)
         else:
-            raise Exception("args.task not handled in test_step!")
+            raise Exception(f"args.task=={self.args.task} not handled in test_step!")
 
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.test_step_outputs.append(output)
@@ -147,7 +147,7 @@ class BaseModel(L.LightningModule):
         elif self.args.task == "mlc":
             criterion = torch.nn.BCEWithLogitsLoss()
         else:
-            raise Exception("args.task not handled in init_criterion!")
+            raise Exception(f"args.task=={self.args.task} not handled in init_criterion!")
         return criterion
 
     #################
@@ -193,7 +193,7 @@ class BaseModel(L.LightningModule):
                 "f1_none": MultilabelF1Score(num_classes, average="none"),
             })
         else:
-            raise Exception("args.task not handled!")
+            raise Exception(f"args.task=={self.args.task} not handled!")
         
         return metrics_collection
 
