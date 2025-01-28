@@ -14,6 +14,8 @@ from safetensors.numpy import load as load_np_safetensor
 from torch.utils.data import Dataset
 from torch.utils.data import IterableDataset
 
+from utils import compute_channel_statistics_rs
+from data.transform import get_remote_sensing_transform
 
 def _hash(data):
     return md5(str(data).encode()).hexdigest()
@@ -314,18 +316,61 @@ class EuroSATDataModule(LightningDataModule):
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
+        
+        # Adding mean, std and percentile values for training dataset
+        self.mean = None
+        self.std = None
+        self.percentile = None
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
+            # First create dataset without transforms to compute statistics so that we don't have to laod the dataset twice
             self.train_dataset = self.dataset(
-                split='train'
+                split='train',
+                transform=None  # No transforms for statistics computation
             )
+            
+            temp_train_dataloader = torch.utils.data.DataLoader(
+                self.train_dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                shuffle=False  # No need to shuffle for statistics
+            )
+            
+            # Compute statistics using only training data to prevent leakage
+            self.mean, self.std, self.percentile = compute_channel_statistics_rs(
+                temp_train_dataloader
+            )
+            
+            # Training transform includes augmentations
+            train_transform = get_remote_sensing_transform(
+                percentile_values=self.percentile,
+                mean=self.mean,
+                std=self.std,
+                apply_augmentations=True
+            )
+            
+            # Validation and test transforms apply normalization only
+            val_test_transform = get_remote_sensing_transform(
+                percentile_values=self.percentile,
+                mean=self.mean,
+                std=self.std,
+                apply_augmentations=False
+            )
+            
+            # Update the transform attribute of the existing train_dataset
+            self.train_dataset.transform = train_transform
+            
+            # Validation dataset without transforms
             self.val_dataset = self.dataset(
-                split='validation'
+                split='validation',
+                transform=val_test_transform
             )
+            
         if stage == 'test' or stage is None:
             self.test_dataset = self.dataset(
-                split='test'
+                split='test',
+                transform=val_test_transform
             )
 
     def train_dataloader(self):

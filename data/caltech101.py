@@ -11,6 +11,8 @@ from torchvision import datasets as torch_datasets
 
 from lightning.pytorch import LightningDataModule
 
+from utils import compute_channel_statistics_rgb
+from data.transform import get_caltech_transform
 
 class Caltech101Dataset(Dataset):
     def __init__(self, dataset_path: str, split: str = None, transform: Optional[transforms.Compose] = None):
@@ -78,18 +80,54 @@ class Caltech101DataModule(LightningDataModule):
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
+            # First create dataset without transforms to compute statistics
             self.train_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='train',
+                transform=None  # No transforms for statistics computation
             )
+            
+            # Create a temporary dataloader to compute statistics
+            temp_train_dataloader = torch.utils.data.DataLoader(
+                self.train_dataset,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                shuffle=False  # No need to shuffle for statistics
+            )
+            
+            # Compute statistics using only training data
+            self.mean, self.std = compute_channel_statistics_rgb(temp_train_dataloader)
+            
+            # Training transform includes normalization and augmentations
+            train_transform = get_caltech_transform(
+                mean=self.mean,
+                std=self.std,
+                apply_augmentations=True
+            )
+            
+            # Validation/Test transform includes normalization only
+            val_test_transform = get_caltech_transform(
+                mean=self.mean,
+                std=self.std,
+                apply_augmentations=False
+            )
+            
+            # Update the transform attribute of the existing train_dataset
+            self.train_dataset.transform = train_transform
+            
+            # Validation dataset with normalization
             self.val_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='validation',
+                transform=val_test_transform
             )
+            
         if stage == 'test' or stage is None:
+            # Test dataset with normalization
             self.test_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='test',
+                transform=val_test_transform
             )
 
     def train_dataloader(self):
