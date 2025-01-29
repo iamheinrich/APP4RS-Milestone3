@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import IterableDataset
 
 from utils import compute_channel_statistics_rs
-from data.transform import get_remote_sensing_transform
+from data.transform import get_remote_sensing_transform, build_rs_transform_pipeline
 
 def _hash(data):
     return md5(str(data).encode()).hexdigest()
@@ -66,6 +66,17 @@ class EuroSATIndexableLMDBDataset(Dataset):
         self.keys = self.metadata['patch_name'].tolist()
         # sort keys to ensure reproducibility
         self.keys.sort()
+        # Set default transform if none provided
+        if transform is None:
+            transform = build_rs_transform_pipeline(
+                percentile_values=[10000] * len(bandorder),  # Example percentile values
+                mean=[0.5] * len(bandorder),
+                std=[0.5] * len(bandorder),
+                apply_sharpness=True,
+                apply_contrast=True,
+                apply_grayscale=True
+            )
+        self.transform = transform
 
     def __len__(self):
         return len(self.keys)
@@ -347,7 +358,8 @@ class EuroSATDataModule(LightningDataModule):
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std,
-                apply_augmentations=True
+                # apply_brightness=True
+                # Add augmentations as needed
             )
             
             # Validation and test transforms apply normalization only
@@ -355,7 +367,8 @@ class EuroSATDataModule(LightningDataModule):
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std,
-                apply_augmentations=False
+                # apply_brightness=True
+                # Add augmentations as needed
             )
             
             # Update the transform attribute of the existing train_dataset

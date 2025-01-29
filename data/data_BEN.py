@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import IterableDataset
 
 from utils import compute_channel_statistics_rs
-from data.transform import get_remote_sensing_transform
+from data.transform import get_remote_sensing_transform, build_rs_transform_pipeline
 
 
 def _hash(data):
@@ -77,6 +77,17 @@ class BENIndexableLMDBDataset(Dataset):
         self.keys = self.metadata['patch_id'].tolist()
         # sort keys to ensure reproducibility
         self.keys.sort()
+        # Set default transform if none provided
+        if transform is None:
+            transform = build_rs_transform_pipeline(
+                percentile_values=[10000] * len(bandorder),  # Example percentile values
+                mean=[0.5] * len(bandorder),
+                std=[0.5] * len(bandorder),
+                apply_sharpness=True,
+                apply_contrast=True,
+                apply_grayscale=True
+            )
+        self.transform = transform
 
     def __len__(self):
         return len(self.keys)
@@ -144,6 +155,17 @@ class BENIndexableTifDataset(Dataset):
         self.keys = self.metadata['patch_id'].tolist()
         # sort keys to ensure reproducibility
         self.keys.sort()
+        # Set default transform if none provided
+        if transform is None:
+            transform = build_rs_transform_pipeline(
+                percentile_values=[10000] * len(bandorder),  # Example percentile values
+                mean=[0.5] * len(bandorder),
+                std=[0.5] * len(bandorder),
+                apply_sharpness=True,
+                apply_contrast=True,
+                apply_grayscale=True
+            )
+        self.transform = transform
 
     def __len__(self):
         return len(self.keys)
@@ -359,7 +381,7 @@ class BENDataModule(LightningDataModule):
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std,
-                apply_augmentations=True
+                augmentation_type='RandomResizeCrop'  # Using RandomResizeCrop as default augmentation
             )
             
             # Validation and test transforms apply normalization only
@@ -367,7 +389,7 @@ class BENDataModule(LightningDataModule):
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std,
-                apply_augmentations=False
+                augmentation_type=None  # No augmentation for validation/test
             )
             
             # Update the transform attribute of the existing train_dataset
