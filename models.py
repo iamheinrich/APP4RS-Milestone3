@@ -4,7 +4,7 @@ import torch.nn as nn
 import timm
 
 class CustomCNN(nn.Module):
-    def __init__(self, num_classes, num_channels):
+    def __init__(self, num_channels, num_classes):
         super(CustomCNN, self).__init__()
 
         self.conv1 = nn.Conv2d(num_channels, 64, kernel_size=7,padding=3,stride=2)
@@ -42,7 +42,7 @@ class CustomCNN(nn.Module):
     
 def get_network(arch_name, num_channels, num_classes, pretrained):
     if arch_name == "CustomCNN":
-        model = CustomCNN(num_channels, num_classes)
+        model = CustomCNN(num_channels=num_channels, num_classes=num_classes)
     elif arch_name == "ResNet18":
         #https://huggingface.co/timm/resnet18.a1_in1k
         model = timm.create_model("resnet18.a1_in1k", pretrained=pretrained, in_chans=num_channels, num_classes=num_classes)
@@ -55,8 +55,6 @@ def get_network(arch_name, num_channels, num_classes, pretrained):
     else:
         raise NotImplementedError(f"arch_name=={arch_name} is not handled!!")
 
-    #data_config = timm.data.resolve_model_data_config(model)                    #TODO check whether necessary
-    #transforms = timm.data.create_transform(**data_config, is_training=False)
     
     #model = model.eval() not necessary since lightning sets mode automatically
     return model

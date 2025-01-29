@@ -2,3 +2,7 @@
 __pycache__
 Material
 untracked-files/
+/venv
+/dataset_conversion
+.vscode
+/wandb
