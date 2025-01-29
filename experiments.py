@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(prog='APP4RS', description='Run Experiments.')
 
 parser.add_argument('--task', type=str, default='slc')
 parser.add_argument('--logging_dir', type=str)
-
+    
 parser.add_argument('--dataset', type=str)
 parser.add_argument('--lmdb_path', type=str)
 parser.add_argument('--metadata_parquet_path', type=str)
@@ -24,27 +24,27 @@ parser.add_argument('--num_channels', type=int)
 parser.add_argument('--num_classes', type=int)
 parser.add_argument('--num_workers', type=int)
 parser.add_argument('--batch_size', type=int)
-
+    
 parser.add_argument('--arch_name', type=str)
 parser.add_argument('--pretrained', action='store_true')
 parser.add_argument('--dropout', action='store_true')
 parser.add_argument('--epochs', type=int)
 parser.add_argument('--learning_rate', type=float)
 parser.add_argument('--weight_decay', type=float)
-
+    
 # Augmentation arguments
-parser.add_argument('--random_resize_crop', action='store_true')
-parser.add_argument('--cutout', action='store_true')
-parser.add_argument('--brightness', action='store_true')
-parser.add_argument('--contrast', action='store_true')
-parser.add_argument('--grayscale', action='store_true')
-parser.add_argument('--sharpen', action='store_true')
+parser.add_argument('--apply_random_resize_crop', action='store_true')
+parser.add_argument('--apply_cutout', action='store_true')
+parser.add_argument('--apply_brightness', action='store_true')
+parser.add_argument('--apply_contrast', action='store_true')
+parser.add_argument('--apply_grayscale', action='store_true')
+parser.add_argument('--apply_sharpen', action='store_true')
 
 #added
 parser.add_argument('--max_lr', type=float)
 parser.add_argument('--pct_start', type=float)
 parser.add_argument('--patience', type=int)
-
+    
 def experiments():
     args = parser.parse_args()
 
@@ -89,19 +89,19 @@ def experiments():
 
     # Set up augmentation flags based on args
     augmentation_flags = {
-        'apply_random_resize_crop': args.random_resize_crop,
-        'apply_cutout': args.cutout,
-        'apply_brightness': args.brightness,
-        'apply_contrast': args.contrast,
-        'apply_grayscale': args.grayscale,
-        'apply_sharpen': args.sharpen
+        'apply_random_resize_crop': args.apply_random_resize_crop,
+        'apply_cutout': args.apply_cutout,
+        'apply_brightness': args.apply_brightness,
+        'apply_contrast': args.apply_contrast,
+        'apply_grayscale': args.apply_grayscale,
+        'apply_sharpen': args.apply_sharpen
     }
-    
+
     # Initialize datamodule
     datamodule_config = dataset_configs[args.dataset]
     datamodule_config["kwargs"]["augmentation_flags"] = augmentation_flags
     datamodule = datamodule_config["module"](**datamodule_config["kwargs"])
-
+    
     # Initialize network
     network = get_network(
         arch_name=args.arch_name,
@@ -112,11 +112,11 @@ def experiments():
     
     # Adjust learning rate for Caltech-101
     if args.dataset == "Caltech-101":
-        args.learning_rate = 0.025
-
+        args.learning_rate = 0.025 #TODO: Check if this is true for all experiments. 
+    
     # Initialize model
     model = BaseModel(args, datamodule, network)
-
+    
     checkpoint_callback = ModelCheckpoint(
         monitor=model.best_metric,
         dirpath="untracked-files",
@@ -134,7 +134,7 @@ def experiments():
         log_model=True,
         offline=True
     )
-
+    
     trainer = Trainer(
         callbacks=[checkpoint_callback,early_stopping_callback],
         logger=wandb_logger,
@@ -143,13 +143,13 @@ def experiments():
         enable_checkpointing=True,
         max_epochs=args.epochs,
     )
-
+    
     # training
     trainer.fit(model,datamodule)
-
+    
     best_model_path = trainer.checkpoint_callback.best_model_path # can also be called without trainer.
     best_model = BaseModel.load_from_checkpoint(best_model_path)
-
+        
     #TODO reusing same trainer should be no problem right?
     trainer.test(best_model,datamodule)
 
