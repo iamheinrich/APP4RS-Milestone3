@@ -79,7 +79,7 @@ def compute_channel_statistics_rs(
 
 
 def compute_channel_statistics_rgb(
-    data_module: Caltech101DataModule,
+    dataloader: torch.utils.data.DataLoader,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Compute mean and std for each channel in Caltech101.
@@ -87,7 +87,8 @@ def compute_channel_statistics_rgb(
     Assumes RGB images in range [0, 255] in (B, C, H, W) format.
 
     Parameters:
-        data_module: Caltech101DataModule
+        dataloader: torch.utils.data.DataLoader
+            Dataloader for the training dataset
 
     Returns:
         Tuple[np.ndarray, np.ndarray]: Arrays of (means, stds) for each channel.
@@ -95,7 +96,7 @@ def compute_channel_statistics_rgb(
     # Process all training batches
     channel_values = [[] for _ in range(3)]  # RGB has 3 channels
     
-    for batch in data_module.train_dataloader():
+    for batch in dataloader:
         images = batch[0].cpu().numpy()
         
         # Verify (B, C, H, W) format with 3 channels

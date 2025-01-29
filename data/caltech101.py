@@ -12,12 +12,21 @@ from torchvision import datasets as torch_datasets
 from lightning.pytorch import LightningDataModule
 
 from utils import compute_channel_statistics_rgb
-from data.transform import get_caltech_transform
+from data.transform import get_caltech_transform, build_pil_transform_pipeline
 
 class Caltech101Dataset(Dataset):
     def __init__(self, dataset_path: str, split: str = None, transform: Optional[transforms.Compose] = None):
-        self.dataset = torch_datasets.Caltech101(dataset_path)
+        self.dataset = torch_datasets.Caltech101(dataset_path, download=True) #TODO: remove download=True
         self.split = split
+        # Set default transform if none provided
+        if transform is None:
+            transform = build_pil_transform_pipeline(
+                mean=[0.485, 0.456, 0.406],  # Example mean values for RGB
+                std=[0.229, 0.224, 0.225],  # Example std values for RGB
+                apply_sharpness=True,
+                apply_contrast=True,
+                apply_grayscale=True
+            )
         self.transform = transform
         self.resize_to_224x224 = transforms.Resize((224, 224))
         self.targets = np.array(self.dataset.y)
@@ -69,11 +78,13 @@ class Caltech101DataModule(LightningDataModule):
         lmdb_path: str,
         batch_size: int,
         num_workers: int,
+        augmentation_flags: dict = None
     ):
         super().__init__()
         self.dataset_path = lmdb_path
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.augmentation_flags = augmentation_flags or {}
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
@@ -98,36 +109,32 @@ class Caltech101DataModule(LightningDataModule):
             # Compute statistics using only training data
             self.mean, self.std = compute_channel_statistics_rgb(temp_train_dataloader)
             
-            # Training transform includes normalization and augmentations
-            train_transform = get_caltech_transform(
+            # Set transforms with computed statistics and augmentations for training
+            self.train_dataset.transform = get_caltech_transform(
                 mean=self.mean,
                 std=self.std,
-                apply_augmentations=True
+                **self.augmentation_flags
             )
             
-            # Validation/Test transform includes normalization only
-            val_test_transform = get_caltech_transform(
-                mean=self.mean,
-                std=self.std,
-                apply_augmentations=False
-            )
-            
-            # Update the transform attribute of the existing train_dataset
-            self.train_dataset.transform = train_transform
-            
-            # Validation dataset with normalization
+            # Validation dataset with only normalization, no augmentations
             self.val_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='validation',
-                transform=val_test_transform
+                transform=get_caltech_transform(
+                    mean=self.mean,
+                    std=self.std
+                )
             )
             
         if stage == 'test' or stage is None:
-            # Test dataset with normalization
+            # Test dataset with only normalization, no augmentations
             self.test_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='test',
-                transform=val_test_transform
+                transform=get_caltech_transform(
+                    mean=self.mean,
+                    std=self.std
+                )
             )
 
     def train_dataloader(self):

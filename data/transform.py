@@ -43,9 +43,9 @@ class ToNumpy:
 class ToTensorCHW:
     """
     Convert a NumPy array (H, W, C) back to a torch.Tensor (C, H, W).
-    Optionally we canspecify a dtype (float32, uint16, etc.). Default is uint16.
+    Optionally we canspecify a dtype (float32, uint16, etc.). Default is float32.
     """
-    def __init__(self, dtype=torch.uint16):
+    def __init__(self, dtype=torch.float32):
         self.dtype = dtype
 
     def __call__(self, x: np.ndarray):
@@ -62,8 +62,9 @@ class ToTensorCHW:
 class Uint16NormalizeNumpy:
     """
     Convert raw uint16 in each channel to [0..1] by dividing by a
-    precomputed 99th-percentile. Then clip.
+    precomputed 99th-percentile. Then clip and convert
     """
+    
     def __init__(self, percentile_values: np.ndarray):
         """
         percentile_values: shape (C,) specifying the 99th-percentile
@@ -97,67 +98,75 @@ class Uint16NormalizeNumpy:
 
 
 # -------------------------------
-# 3) Albumentations Pipeline
+# 3) Albumentations Wrappers
 # -------------------------------
-def build_albumentations_compose(
-    apply_sharpen=True,
-    apply_contrast=True,
-    sharpen_p=0.5, # Default value
-    contrast_p=0.5, # Default value
-    overall_p=1.0 # Applies the entire pipeline with this probability
-):
-    """
-    Build an Albumentations Compose with optional Sharpen & Contrast.
-    Each transform has p=1.0 inside the Compose, but we set an 'overall_p'
-    for the entire pipeline if we want to skip them sometimes.
-    """
-    atrans = []
-
-    if apply_sharpen:
-        atrans.append(
-            A.Sharpen(
-                alpha=(0.2, 0.5), # Default values
-                lightness=(0.5, 1.0), # Default values
-                p=sharpen_p  # Probability of applying Sharpen individually
-            )
-        )
-
-    if apply_contrast:
-        atrans.append(
-            A.RandomBrightnessContrast(
-                brightness_limit=(-0.2, 0.2), # Default values
-                contrast_limit=(-0.2, 0.2), # Default values
-                p=contrast_p  # Probability of applying RBC individually
-            )
-        )
-
-    return A.Compose(atrans, p=overall_p)
-
-
-class AlbumentationsTransform:
-    """
-    A PyTorch wrapper that applies an Albumentations Compose.
-    Expects a NumPy array (H, W, C); returns a NumPy array (H, W, C).
-    """
-    def __init__(self, albumentations_compose: A.Compose):
-        self.albumentations_compose = albumentations_compose
-
+class AlbumentationsWrapper:
+    """Base wrapper to make Albumentations transforms compatible with torchvision.transforms.Compose"""
+    def __init__(self, transform):
+        self.transform = transform
+    
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        augmented = self.albumentations_compose(image=x)
-        return augmented['image']
+        # Apply Albumentations transform
+        result = self.transform(image=x)['image']
+        return result
 
+class SharpenWrapper(AlbumentationsWrapper):
+    # Works with float32 and uint8
+    # Works with any number of channels
+    def __init__(self):
+        super().__init__(A.Sharpen())
+
+class RandomResizeCropWrapper(AlbumentationsWrapper):
+    # Works with float32 and uint8
+    # Should work with any number of channels
+    def __init__(self):
+        super().__init__(A.RandomResizedCrop(height=100, width=100))
+
+class CutOutWrapper(AlbumentationsWrapper):
+    # Works with float32 and uint8
+    # Seems to work with any number of channels 
+    # Using float values for height and width to define fractions, which should work for uint8 and float32
+    def __init__(self):
+        super().__init__(A.CoarseDropout(hole_height_range=(0.05,0.05), hole_width_range=(0.05,0.05), fill='random'))
+
+class BrightnessWrapper(AlbumentationsWrapper):
+    # Works with float32 and uint8
+    # Works with any number of channels
+    def __init__(self):
+        super().__init__(A.RandomBrightnessContrast(contrast_limit=(0,0))) # Set contrast to 0 to ensure we only change brightness
+
+class ContrastWrapper(AlbumentationsWrapper):
+    # Works with float32 and uint8
+    # Works with any number of channels
+    def __init__(self):
+        super().__init__(A.RandomBrightnessContrast(brightness_limit=(0,0))) # Set brightness to 0 to ensure we only change contrast
+
+class ToGrayWrapper(AlbumentationsWrapper):
+    # Works with float32 and uint8
+    # Works with 3 channels
+    def __init__(self):
+        super().__init__(A.ToGray(num_output_channels=3)) # Converts back to 3 channels for RGB
 
 # -------------------------------
-# 4) Optional Multi-Channel GrayScale
+# 4) Multi-Channel GrayScale
 # -------------------------------
 class MultiChannelGrayScale:
     """
-    Convert multi-channel (H, W, C) to single-channel (H, W, 1) by averaging across channels.
+    Convert multi-channel (H, W, C) to grayscale by averaging across channels.
+    For remote sensing data, maintains the same number of output channels.
     """
-    def __call__(self, x: np.ndarray):
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        if not isinstance(x, np.ndarray):
+            raise TypeError(f"Expected np.ndarray, got {type(x)}")
         if x.ndim != 3:
-            raise ValueError(f"Expected (H, W, C), got {x.shape}")
-        return np.mean(x, axis=2, keepdims=True)  # => (H, W, 1)
+            raise ValueError(f"Expected (H, W, C), got shape {x.shape}")
+        
+        # Calculate grayscale values by averaging across channels
+        gray = x.mean(axis=2, keepdims=True)  # (H, W, 1)
+        
+        # Repeat the grayscale values to match the input number of channels
+        num_channels = x.shape[2]
+        return np.repeat(gray, num_channels, axis=2)  # (H, W, C)
 
 
 # -------------------------------
@@ -166,63 +175,64 @@ class MultiChannelGrayScale:
 def build_pil_transform_pipeline(
     mean=None,
     std=None,
-    apply_augmentations=False,
-    apply_sharpen=True,
-    apply_contrast=True,
-    sharpen_p=0.5,
-    contrast_p=0.5,
-    overall_aug_p=1.0,
-    apply_grayscale=False
+    apply_random_resize_crop=False,
+    apply_cutout=False,
+    apply_brightness=False,
+    apply_contrast=False,
+    apply_grayscale=False,
+    apply_sharpen=False,
 ):
     """
     Build a transform pipeline for regular PIL images (RGB).
 
     Parameters:
         mean, std: list or tuple
-            Mean and std for final PyTorch Normalize (one entry per channel).
-        apply_augmentations: bool
-            Whether to include Albumentations transforms.
-        apply_sharpen, apply_contrast: bool
-            Which augmentations to include if apply_augmentations=True.
-        sharpen_p, contrast_p: float
-            Individual probabilities for each augmentation.
-        overall_aug_p: float
-            Probability to apply the Albumentations pipeline as a whole.
+            Mean and std for final normalization (one entry per channel).
+        apply_random_resize_crop: bool
+            Whether to apply random resize
+        apply_cutout: bool
+            Whether to apply random erasing
+        apply_brightness: bool
+            Whether to apply random brightness adjustment
+        apply_contrast: bool
+            Whether to apply random contrast adjustment
         apply_grayscale: bool
-            If True => convert to single-channel grayscale.
-
+            Whether to convert to grayscale with 3 output channels
+        apply_sharpen: bool
+            Whether to apply sharpening
     Returns:
         torchvision.transforms.Compose that:
           1) Converts input to NumPy (H, W, C)
-          2) Optionally applies Albumentations
-          3) Optionally converts to grayscale
-          4) Converts to Tensor (C, H, W) in float32
-          5) Applies PyTorch Normalize(mean, std) if provided
+          2) Applies the specified augmentations if any
+          3) Converts to Tensor (C, H, W) in float32
+          4) Applies PyTorch Normalize(mean, std)
     """
+    if mean is None or std is None:
+        raise ValueError("Must provide mean and std for final normalization.")
+    
     transform_list = []
 
-    # Convert input to NumPy
+    # Convert to NumPy
     transform_list.append(ToNumpy())
 
-    # Albumentations-based augmentations
-    if apply_augmentations:
-        alb_compose = build_albumentations_compose(
-            apply_sharpen=apply_sharpen,
-            apply_contrast=apply_contrast,
-            sharpen_p=sharpen_p,
-            contrast_p=contrast_p,
-            overall_p=overall_aug_p
-        )
-        transform_list.append(AlbumentationsTransform(alb_compose))
-
-    # Optional multi-channel grayscale
+    # Optional augmentations
+    if apply_random_resize_crop:
+        transform_list.append(RandomResizeCropWrapper())
+    if apply_cutout:
+        transform_list.append(CutOutWrapper())
+    if apply_brightness:
+        transform_list.append(BrightnessWrapper())
+    if apply_contrast:
+        transform_list.append(ContrastWrapper())
     if apply_grayscale:
-        transform_list.append(MultiChannelGrayScale())
+        transform_list.append(ToGrayWrapper())
+    if apply_sharpen:
+        transform_list.append(SharpenWrapper())
 
-    # Convert to Tensor (float32)
+    # Convert back to Tensor
     transform_list.append(ToTensorCHW(dtype=torch.float32))
 
-    # Final normalization if mean/std provided
+    # Final normalization - always applied if mean/std provided
     if mean is not None and std is not None:
         transform_list.append(T.Normalize(mean=mean, std=std))
 
@@ -233,72 +243,67 @@ def build_rs_transform_pipeline(
     percentile_values,
     mean=None,
     std=None,
-    apply_augmentations=False,
-    apply_sharpen=True,
-    apply_contrast=True,
-    sharpen_p=0.5,
-    contrast_p=0.5,
-    overall_aug_p=1.0,
-    apply_grayscale=False
+    apply_random_resize_crop=False,
+    apply_cutout=False,
+    apply_brightness=False,
+    apply_contrast=False,
+    apply_grayscale=False,
+    apply_sharpen=False,
 ):
     """
     Build a transform pipeline for remote sensing images (multi-channel uint16).
 
     Parameters:
         percentile_values: np.ndarray
-            The 99th-percentile values for each channel, used for normalization. Must be the same length as number of channels in input data.
+            The 99th-percentile values for each channel, used for normalization.
         mean, std: list or tuple
-            Mean and std for final PyTorch Normalize (one entry per channel).
-        apply_augmentations: bool
-            Whether to include Albumentations transforms.
-        apply_sharpen, apply_contrast: bool
-            Which augmentations to include if apply_augmentations=True.
-        sharpen_p, contrast_p: float
-            Individual probabilities for each augmentation.
-        overall_aug_p: float
-            Probability to apply the Albumentations pipeline as a whole.
+            Mean and std for final normalization (one entry per channel).
+        apply_random_resize_crop: bool
+            Whether to apply random resize
+        apply_cutout: bool
+            Whether to apply random erasing
+        apply_brightness: bool
+            Whether to apply random brightness adjustment
+        apply_contrast: bool
+            Whether to apply random contrast adjustment
         apply_grayscale: bool
-            If True => convert to single-channel grayscale.
-
+            Whether to convert to grayscale while maintaining the number of channels
+        apply_sharpen: bool
+            Whether to apply sharpening
     Returns:
         torchvision.transforms.Compose that:
           1) Converts input to NumPy (H, W, C)
           2) Normalizes uint16 values using percentile_values
-          3) Optionally applies Albumentations
-          4) Optionally converts to grayscale
-          5) Converts to Tensor (C, H, W) in float32
-          6) Applies PyTorch Normalize(mean, std) if provided
+          3) Applies the specified augmentations
+          4) Converts to Tensor (C, H, W) in float32
+          5) Applies PyTorch Normalize(mean, std)
     """
-    if percentile_values is None:
-        raise ValueError("Must provide percentile_values for remote sensing data.")
+    if percentile_values is None or mean is None or std is None:
+        raise ValueError("Must provide percentile_values, mean, and std for remote sensing data.")
 
     transform_list = []
 
-    # Convert input to NumPy
+    # Convert to NumPy and normalize uint16
     transform_list.append(ToNumpy())
-
-    # Handle uint16 normalization
     transform_list.append(Uint16NormalizeNumpy(percentile_values))
 
-    # Albumentations-based augmentations
-    if apply_augmentations:
-        alb_compose = build_albumentations_compose(
-            apply_sharpen=apply_sharpen,
-            apply_contrast=apply_contrast,
-            sharpen_p=sharpen_p,
-            contrast_p=contrast_p,
-            overall_p=overall_aug_p
-        )
-        transform_list.append(AlbumentationsTransform(alb_compose))
-
-    # Optional multi-channel grayscale
+    # Optional augmentations
+    if apply_random_resize_crop:
+        transform_list.append(RandomResizeCropWrapper())
+    if apply_cutout:
+        transform_list.append(CutOutWrapper())
+    if apply_brightness:
+        transform_list.append(BrightnessWrapper())
+    if apply_contrast:
+        transform_list.append(ContrastWrapper())
     if apply_grayscale:
         transform_list.append(MultiChannelGrayScale())
-
-    # Convert to Tensor (float32)
+    if apply_sharpen:
+        transform_list.append(SharpenWrapper())
+    # Convert back to Tensor
     transform_list.append(ToTensorCHW(dtype=torch.float32))
 
-    # Final normalization if mean/std provided
+    # Final normalization - always applied if mean/std provided
     if mean is not None and std is not None:
         transform_list.append(T.Normalize(mean=mean, std=std))
 
@@ -311,7 +316,12 @@ def build_rs_transform_pipeline(
 def get_caltech_transform(
     mean,
     std,
-    apply_augmentations=False
+    apply_random_resize_crop=False,
+    apply_cutout=False,
+    apply_brightness=False,
+    apply_contrast=False,
+    apply_grayscale=False,
+    apply_sharpen=False,
 ):
     """
     For standard 3-channel PIL images like Caltech101.
@@ -320,7 +330,12 @@ def get_caltech_transform(
     return build_pil_transform_pipeline(
         mean=mean,
         std=std,
-        apply_augmentations=apply_augmentations
+        apply_random_resize_crop=apply_random_resize_crop,
+        apply_cutout=apply_cutout,
+        apply_brightness=apply_brightness,
+        apply_contrast=apply_contrast,
+        apply_grayscale=apply_grayscale,
+        apply_sharpen=apply_sharpen,
     )
 
 
@@ -328,17 +343,25 @@ def get_remote_sensing_transform(
     percentile_values,
     mean,
     std,
-    apply_augmentations=False,
-    apply_grayscale=False
+    apply_random_resize_crop=False,
+    apply_cutout=False,
+    apply_brightness=False,
+    apply_contrast=False,
+    apply_grayscale=False,
+    apply_sharpen=False,
 ):
     """
-    For multispectral data like BEN or EuroSAT,
+    For multispectral data like BEN or EuroSAT.
     Mean and std have to be scaled according to image scale (0..255) or (0..1).
     """
     return build_rs_transform_pipeline(
         percentile_values=percentile_values,
         mean=mean,
         std=std,
-        apply_augmentations=apply_augmentations,
-        apply_grayscale=apply_grayscale
+        apply_random_resize_crop=apply_random_resize_crop,
+        apply_cutout=apply_cutout,
+        apply_brightness=apply_brightness,
+        apply_contrast=apply_contrast,
+        apply_grayscale=apply_grayscale,
+        apply_sharpen=apply_sharpen,
     )

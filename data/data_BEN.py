@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import IterableDataset
 
 from utils import compute_channel_statistics_rs
-from data.transform import get_remote_sensing_transform
+from data.transform import get_remote_sensing_transform, build_rs_transform_pipeline
 
 
 def _hash(data):
@@ -77,6 +77,17 @@ class BENIndexableLMDBDataset(Dataset):
         self.keys = self.metadata['patch_id'].tolist()
         # sort keys to ensure reproducibility
         self.keys.sort()
+        # Set default transform if none provided
+        if transform is None:
+            transform = build_rs_transform_pipeline(
+                percentile_values=[10000] * len(bandorder),  # Example percentile values
+                mean=[0.5] * len(bandorder),
+                std=[0.5] * len(bandorder),
+                apply_sharpness=True,
+                apply_contrast=True,
+                apply_grayscale=True
+            )
+        self.transform = transform
 
     def __len__(self):
         return len(self.keys)
@@ -144,6 +155,17 @@ class BENIndexableTifDataset(Dataset):
         self.keys = self.metadata['patch_id'].tolist()
         # sort keys to ensure reproducibility
         self.keys.sort()
+        # Set default transform if none provided
+        if transform is None:
+            transform = build_rs_transform_pipeline(
+                percentile_values=[10000] * len(bandorder),  # Example percentile values
+                mean=[0.5] * len(bandorder),
+                std=[0.5] * len(bandorder),
+                apply_sharpness=True,
+                apply_contrast=True,
+                apply_grayscale=True
+            )
+        self.transform = transform
 
     def __len__(self):
         return len(self.keys)
@@ -284,6 +306,7 @@ class BENDataModule(LightningDataModule):
             base_path: Optional[str] = None,
             lmdb_path: Optional[str] = None,
             metadata_parquet_path: Optional[str] = None,
+            augmentation_flags: dict = None
     ):
         """
         DataModule for the BigEarthNet dataset.
@@ -295,6 +318,7 @@ class BENDataModule(LightningDataModule):
         :param base_path: path to the source BigEarthNet dataset (root of the tar file), for tif dataset
         :param lmdb_path: path to the converted lmdb file, for lmdb dataset
         :param metadata_parquet_path: path to the metadata parquet file, for lmdb dataset
+        :param augmentation_flags: dictionary of augmentation flags
         """
         super().__init__()
         self.base_path = base_path
@@ -302,6 +326,7 @@ class BENDataModule(LightningDataModule):
         self.num_workers = num_workers
         self.ds_type = ds_type
         self.bandorder = bandorder
+        self.augmentation_flags = augmentation_flags or {}
         if ds_type == 'indexable_tif':
             assert base_path is not None, 'base_path must be provided for indexable_tif dataset'
             self.dataset = partial(BENIndexableTifDataset,
@@ -359,21 +384,21 @@ class BENDataModule(LightningDataModule):
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std,
-                apply_augmentations=True
+                **self.augmentation_flags
             )
             
             # Validation and test transforms apply normalization only
+            # Apply augmentations as needed
             val_test_transform = get_remote_sensing_transform(
                 percentile_values=self.percentile,
                 mean=self.mean,
-                std=self.std,
-                apply_augmentations=False
+                std=self.std
             )
             
             # Update the transform attribute of the existing train_dataset
             self.train_dataset.transform = train_transform
             
-            # Validation dataset without transforms
+            # Validation dataset without augmentations
             self.val_dataset = self.dataset(
                 split='validation',
                 transform=val_test_transform
