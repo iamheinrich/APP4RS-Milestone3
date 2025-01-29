@@ -2,6 +2,7 @@ import subprocess
 import os
 
 class ExperimentRunner:
+    """ Class to run experiments """
     def __init__(self):
         self.base_command = ["python", "experiments.py"]
         self.datasets = {
@@ -28,7 +29,7 @@ class ExperimentRunner:
     def _run_command(self, command: list[str]) -> None:
         """Run a command and handle corresponding output."""
         print(f"Running command: {' '.join(command)}")
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True) # Subprocesses are executed synchronously
         
         if result.returncode == 0:
             print("Training completed successfully.")
@@ -65,7 +66,7 @@ class ExperimentRunner:
                 "--num_channels", str(config["num_channels"]),
                 "--num_classes", str(config["num_classes"]),
                 "--lmdb_path", config["lmdb_path"],
-                "--pretrained", "False"
+                "--pretrained", "False",
             ]
             
             if config["metadata_path"]:
@@ -80,6 +81,14 @@ class ExperimentRunner:
                 print(f"\nRunning {aug.lstrip('--')} experiment for {dataset_name}")
                 aug_cmd = base_cmd + [aug]
                 self._run_command(aug_cmd)
+    
+    def run_feature_extraction_study(self) -> None:
+        """Task 7: Run feature extraction and t-SNE visualization."""
+        pass
+    
+    def run_multi_model_benchmark_experiment(self) -> None:
+        """Task 6: Run multi-model benchmark experiment."""
+        pass
 
 def main():
     # Create experiment runner

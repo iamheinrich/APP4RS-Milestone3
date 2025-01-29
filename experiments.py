@@ -100,7 +100,7 @@ def experiments():
     # Initialize datamodule
     datamodule_config = dataset_configs[args.dataset]
     datamodule_config["kwargs"]["augmentation_flags"] = augmentation_flags
-    datamodule = datamodule_config["module"](**datamodule_config["kwargs"])
+    datamodule = datamodule_config["module"](**datamodule_config["kwargs"]) # BenDataModule(args)
     
     # Initialize network
     network = get_network(
@@ -112,7 +112,7 @@ def experiments():
     
     # Adjust learning rate for Caltech-101
     if args.dataset == "Caltech-101":
-        args.learning_rate = 0.025 #TODO: Check if this is true for all experiments. 
+        args.learning_rate = 0.025 #TODO: Check if this is true for all experiments. And add to args.
     
     # Initialize model
     model = BaseModel(args, datamodule, network)

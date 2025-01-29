@@ -133,13 +133,13 @@ class BrightnessWrapper(AlbumentationsWrapper):
     # Works with float32 and uint8
     # Works with any number of channels
     def __init__(self):
-        super().__init__(A.RandomBrightnessContrast(contrast_limit=(0,0)))
+        super().__init__(A.RandomBrightnessContrast(contrast_limit=(0,0))) # Set contrast to 0 to ensure we only change brightness
 
 class ContrastWrapper(AlbumentationsWrapper):
     # Works with float32 and uint8
     # Works with any number of channels
     def __init__(self):
-        super().__init__(A.RandomBrightnessContrast(brightness_limit=(0,0)))
+        super().__init__(A.RandomBrightnessContrast(brightness_limit=(0,0))) # Set brightness to 0 to ensure we only change contrast
 
 class ToGrayWrapper(AlbumentationsWrapper):
     # Works with float32 and uint8
