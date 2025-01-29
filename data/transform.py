@@ -180,6 +180,7 @@ def build_pil_transform_pipeline(
     apply_brightness=False,
     apply_contrast=False,
     apply_grayscale=False,
+    apply_sharpen=False,
 ):
     """
     Build a transform pipeline for regular PIL images (RGB).
@@ -197,7 +198,8 @@ def build_pil_transform_pipeline(
             Whether to apply random contrast adjustment
         apply_grayscale: bool
             Whether to convert to grayscale with 3 output channels
-
+        apply_sharpen: bool
+            Whether to apply sharpening
     Returns:
         torchvision.transforms.Compose that:
           1) Converts input to NumPy (H, W, C)
@@ -224,6 +226,8 @@ def build_pil_transform_pipeline(
         transform_list.append(ContrastWrapper())
     if apply_grayscale:
         transform_list.append(ToGrayWrapper())
+    if apply_sharpen:
+        transform_list.append(SharpenWrapper())
 
     # Convert back to Tensor
     transform_list.append(ToTensorCHW(dtype=torch.float32))
@@ -244,6 +248,7 @@ def build_rs_transform_pipeline(
     apply_brightness=False,
     apply_contrast=False,
     apply_grayscale=False,
+    apply_sharpen=False,
 ):
     """
     Build a transform pipeline for remote sensing images (multi-channel uint16).
@@ -263,7 +268,8 @@ def build_rs_transform_pipeline(
             Whether to apply random contrast adjustment
         apply_grayscale: bool
             Whether to convert to grayscale while maintaining the number of channels
-
+        apply_sharpen: bool
+            Whether to apply sharpening
     Returns:
         torchvision.transforms.Compose that:
           1) Converts input to NumPy (H, W, C)
@@ -292,7 +298,8 @@ def build_rs_transform_pipeline(
         transform_list.append(ContrastWrapper())
     if apply_grayscale:
         transform_list.append(MultiChannelGrayScale())
-
+    if apply_sharpen:
+        transform_list.append(SharpenWrapper())
     # Convert back to Tensor
     transform_list.append(ToTensorCHW(dtype=torch.float32))
 
@@ -314,6 +321,7 @@ def get_caltech_transform(
     apply_brightness=False,
     apply_contrast=False,
     apply_grayscale=False,
+    apply_sharpen=False,
 ):
     """
     For standard 3-channel PIL images like Caltech101.
@@ -327,6 +335,7 @@ def get_caltech_transform(
         apply_brightness=apply_brightness,
         apply_contrast=apply_contrast,
         apply_grayscale=apply_grayscale,
+        apply_sharpen=apply_sharpen,
     )
 
 
@@ -339,6 +348,7 @@ def get_remote_sensing_transform(
     apply_brightness=False,
     apply_contrast=False,
     apply_grayscale=False,
+    apply_sharpen=False,
 ):
     """
     For multispectral data like BEN or EuroSAT.
@@ -353,4 +363,5 @@ def get_remote_sensing_transform(
         apply_brightness=apply_brightness,
         apply_contrast=apply_contrast,
         apply_grayscale=apply_grayscale,
+        apply_sharpen=apply_sharpen,
     )

@@ -32,6 +32,13 @@ parser.add_argument('--epochs', type=int)
 parser.add_argument('--learning_rate', type=float)
 parser.add_argument('--weight_decay', type=float)
 
+# Augmentation arguments
+parser.add_argument('--random_resize_crop', action='store_true')
+parser.add_argument('--cutout', action='store_true')
+parser.add_argument('--brightness', action='store_true')
+parser.add_argument('--contrast', action='store_true')
+parser.add_argument('--grayscale', action='store_true')
+parser.add_argument('--sharpen', action='store_true')
 
 #added
 parser.add_argument('--max_lr', type=float)
@@ -41,18 +48,73 @@ parser.add_argument('--patience', type=int)
 def experiments():
     args = parser.parse_args()
 
-    network = get_network(arch_name=args.arch_name, num_channels=args.num_channels, num_classes=args.num_classes, pretrained=args.pretrained)
+    # Define datasets and respective configs
+    dataset_configs = {
+        "tiny-BEN": {
+            "module": BENDataModule,
+            "kwargs": {
+                "batch_size": args.batch_size,
+                "num_workers": args.num_workers,
+                "bandorder": ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B11", "B12", "B8A"], # According to bandorder in reference dataloader
+                "ds_type": 'indexable_lmdb',
+                "lmdb_path": args.lmdb_path,
+                "metadata_parquet_path": args.metadata_parquet_path
+            }
+        },
+        "EuroSAT": {
+            "module": EuroSATDataModule,
+            "kwargs": {
+                "batch_size": args.batch_size,
+                "num_workers": args.num_workers,
+                "bandorder": ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B10", "B11", "B12", "B8A"], # According to bandorder in reference dataloader
+                "ds_type": 'indexable_lmdb',
+                "lmdb_path": args.lmdb_path,
+                "metadata_parquet_path": args.metadata_parquet_path
+            }
+        },
+        "Caltech-101": {
+            "module": Caltech101DataModule,
+            "kwargs": {
+                "lmdb_path": "./untracked-files/caltech101",
+                "batch_size": args.batch_size,
+                "num_workers": args.num_workers
+                #TODO: Add bandorder?
+            }
+        }
+    }
+    
+    # Configure dataset
+    if args.dataset not in dataset_configs:
+        raise ValueError(f"Unknown dataset: {args.dataset}")
 
-    #TODO which bandorder? caltech probably rgb?
-    bandorder = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B11", "B12", "B8A"]
-    #bandorder = ["B04", "B03", "B02"] if version == "rgb" else ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
+    # Set up augmentation flags based on args
+    augmentation_flags = {
+        'apply_random_resize_crop': args.random_resize_crop,
+        'apply_cutout': args.cutout,
+        'apply_brightness': args.brightness,
+        'apply_contrast': args.contrast,
+        'apply_grayscale': args.grayscale,
+        'apply_sharpen': args.sharpen
+    }
+    
+    # Initialize datamodule
+    datamodule_config = dataset_configs[args.dataset]
+    datamodule_config["kwargs"]["augmentation_flags"] = augmentation_flags
+    datamodule = datamodule_config["module"](**datamodule_config["kwargs"])
 
-    if(args.dataset == "tiny-BEN"):
-        datamodule = BENDataModule(batch_size=args.batch_size,num_workers=args.num_workers,bandorder=bandorder,ds_type='indexable_lmdb',lmdb_path=args.lmdb_path,metadata_parquet_path=args.metadata_parquet_path)
-    elif(args.dataset == "EuroSAT"):
-        datamodule = EuroSATDataModule(batch_size=args.batch_size,num_workers=args.num_workers,bandorder=bandorder,ds_type='indexable_lmdb',lmdb_path=args.lmdb_path,metadata_parquet_path=args.metadata_parquet_path)
-    elif(args.dataset == "Caltech-101"):
-        datamodule = Caltech101DataModule(lmdb_path="./untracked-files/caltech101",batch_size=args.batch_size,num_workers=args.num_workers)
+    # Initialize network
+    network = get_network(
+        arch_name=args.arch_name,
+        num_channels=args.num_channels,
+        num_classes=args.num_classes,
+        pretrained=args.pretrained
+    )
+    
+    # Adjust learning rate for Caltech-101
+    if args.dataset == "Caltech-101":
+        args.learning_rate = 0.025
+
+    # Initialize model
     model = BaseModel(args, datamodule, network)
 
     checkpoint_callback = ModelCheckpoint(
@@ -61,8 +123,11 @@ def experiments():
         filename=f"{args.arch_name}-{args.task}-{{epoch:d}}-{{{model.best_metric}:.3f}}"
     )
 
-    #TODO ignore these parameters: , min_delta=0.00, verbose=False ?
-    early_stopping_callback = EarlyStopping(monitor=model.best_metric, patience=args.patience, mode="max")
+    early_stopping_callback = EarlyStopping(
+        monitor=model.best_metric,
+        patience=args.patience,
+        mode="max"
+    )
 
     wandb_logger = WandbLogger(
         project="milestone3",

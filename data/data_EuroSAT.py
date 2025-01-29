@@ -283,6 +283,7 @@ class EuroSATDataModule(LightningDataModule):
             base_path: Optional[str] = None,
             lmdb_path: Optional[str] = None,
             metadata_parquet_path: Optional[str] = None,
+            augmentation_flags: dict = None
     ):
         """
         DataModule for the EuroSAT dataset.
@@ -294,6 +295,7 @@ class EuroSATDataModule(LightningDataModule):
         :param base_path: path to the source BigEarthNet dataset (root of the tar file), for tif dataset
         :param lmdb_path: path to the converted lmdb file, for lmdb dataset
         :param metadata_parquet_path: path to the metadata parquet file, for lmdb dataset
+        :param augmentation_flags: dictionary of augmentation flags
         """
         super().__init__()
         self.base_path = base_path
@@ -301,6 +303,7 @@ class EuroSATDataModule(LightningDataModule):
         self.num_workers = num_workers
         self.ds_type = ds_type
         self.bandorder = bandorder
+        self.augmentation_flags = augmentation_flags or {}
         if ds_type == 'indexable_tif':
             assert base_path is not None, 'base_path must be provided for indexable_tif dataset'
             self.dataset = partial(EuroSATIndexableTifDataset,
@@ -358,17 +361,14 @@ class EuroSATDataModule(LightningDataModule):
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std,
-                # apply_brightness=True
-                # Add augmentations as needed
+                **self.augmentation_flags
             )
             
             # Validation and test transforms apply normalization only
             val_test_transform = get_remote_sensing_transform(
                 percentile_values=self.percentile,
                 mean=self.mean,
-                std=self.std,
-                # apply_brightness=True
-                # Add augmentations as needed
+                std=self.std
             )
             
             # Update the transform attribute of the existing train_dataset

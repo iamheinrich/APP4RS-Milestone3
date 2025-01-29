@@ -78,11 +78,13 @@ class Caltech101DataModule(LightningDataModule):
         lmdb_path: str,
         batch_size: int,
         num_workers: int,
+        augmentation_flags: dict = None
     ):
         super().__init__()
         self.dataset_path = lmdb_path
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.augmentation_flags = augmentation_flags or {}
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
@@ -107,37 +109,31 @@ class Caltech101DataModule(LightningDataModule):
             # Compute statistics using only training data
             self.mean, self.std = compute_channel_statistics_rgb(temp_train_dataloader)
             
-            # Set transforms with computed statistics
-            self.train_dataset.transform = build_pil_transform_pipeline(
+            # Set transforms with computed statistics and augmentations for training
+            self.train_dataset.transform = get_caltech_transform(
                 mean=self.mean,
                 std=self.std,
-                apply_sharpness=True, # Default is True, can be changed anytime 
-                apply_contrast=True,
-                apply_grayscale=True
+                **self.augmentation_flags
             )
             
-            # Validation dataset with normalization
+            # Validation dataset with only normalization, no augmentations
             self.val_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='validation',
                 transform=get_caltech_transform(
                     mean=self.mean,
-                    std=self.std,
-                    # apply_brightness=True
-                    # Add augmentations as needed
+                    std=self.std
                 )
             )
             
         if stage == 'test' or stage is None:
-            # Test dataset with normalization
+            # Test dataset with only normalization, no augmentations
             self.test_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='test',
                 transform=get_caltech_transform(
                     mean=self.mean,
-                    std=self.std,
-                    # apply_brightness=True
-                    # Add augmentations as needed
+                    std=self.std
                 )
             )
 
