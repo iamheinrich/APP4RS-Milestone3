@@ -388,6 +388,7 @@ class BENDataModule(LightningDataModule):
             )
             
             # Validation and test transforms apply normalization only
+            # Apply augmentations as needed
             val_test_transform = get_remote_sensing_transform(
                 percentile_values=self.percentile,
                 mean=self.mean,

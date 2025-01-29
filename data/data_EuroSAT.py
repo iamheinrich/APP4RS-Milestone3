@@ -365,11 +365,12 @@ class EuroSATDataModule(LightningDataModule):
             )
             
             # Validation and test transforms apply normalization only
+            # No augmentations for validation and test
             val_test_transform = get_remote_sensing_transform(
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std
-            )
+                )
             
             # Update the transform attribute of the existing train_dataset
             self.train_dataset.transform = train_transform
