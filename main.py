@@ -8,19 +8,19 @@ class ExperimentRunner:
         self.datasets = {
             "tiny-BEN": {
                 "num_channels": 12,
-                "num_classes": 1, #TODO: Change classes
+                "num_classes": 19, #TODO: Change classes
                 "lmdb_path": "/untracked-files/BigEarthNet/BigEarthNet.lmdb",
                 "metadata_path": "/untracked-files/BigEarthNet/BigEarthNet.parquet"
             },
             "EuroSAT": {
                 "num_channels": 13,
-                "num_classes": 1, #TODO: Change classes
+                "num_classes": 10, #TODO: Change classes
                 "lmdb_path": "/untracked-files/EuroSAT/EuroSAT.lmdb",
                 "metadata_path": "/untracked-files/EuroSAT/EuroSAT.parquet"
             },
             "Caltech-101": {
                 "num_channels": 3,
-                "num_classes": 1, #TODO: Change classes
+                "num_classes": 101, #TODO: Change classes
                 "lmdb_path": "./untracked-files/caltech101", #TODO: Adapt path
                 "metadata_path": None
             }
@@ -88,7 +88,17 @@ class ExperimentRunner:
     
     def run_multi_model_benchmark_experiment(self) -> None:
         """Task 6: Run multi-model benchmark experiment."""
-        pass
+        fixed_parameters = [
+            "--learning_rate", "0.001",
+            "--weight_decay", "0.01",
+            "--batch_size", "32",
+            "--num_workers", "4",
+            "--epochs", "30",
+            "--pct_start", "0.3"
+        ]
+        augmentations = [
+            "--apply_flip"
+        ]
 
 def main():
     # Create experiment runner

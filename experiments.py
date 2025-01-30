@@ -39,6 +39,7 @@ parser.add_argument('--apply_brightness', action='store_true')
 parser.add_argument('--apply_contrast', action='store_true')
 parser.add_argument('--apply_grayscale', action='store_true')
 parser.add_argument('--apply_sharpen', action='store_true')
+parser.add_argument('--apply_flip', action='store_true')
 
 #added
 parser.add_argument('--max_lr', type=float)
@@ -94,7 +95,8 @@ def experiments():
         'apply_brightness': args.apply_brightness,
         'apply_contrast': args.apply_contrast,
         'apply_grayscale': args.apply_grayscale,
-        'apply_sharpen': args.apply_sharpen
+        'apply_sharpen': args.apply_sharpen,
+        'apply_flip': args.apply_flip
     }
 
     # Initialize datamodule
