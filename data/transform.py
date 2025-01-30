@@ -157,6 +157,11 @@ class HorizontalVerticalFlipWrapper(AlbumentationsWrapper):
         ])
         super().__init__(transform)
 
+class Resize112Wrapper(AlbumentationsWrapper):
+    # (H, W, C) -> (112, 112, C)
+    def __init__(self):
+        super().__init__(A.Resize(height=112, width=112))
+
 # -------------------------------
 # 4) Multi-Channel GrayScale
 # -------------------------------
@@ -259,7 +264,8 @@ def build_rs_transform_pipeline(
     apply_contrast=False,
     apply_grayscale=False,
     apply_sharpen=False,
-    apply_flip=False
+    apply_flip=False,
+    apply_resize112=False
 ):
     """
     Build a transform pipeline for remote sensing images (multi-channel uint16).
@@ -283,6 +289,8 @@ def build_rs_transform_pipeline(
             Whether to apply sharpening
         apply_flip: bool
             Whether to apply horizontal and vertical flip    
+        apply_resize112: bool
+            Whether to resize to 112x112 as ViT-tiny input
     Returns:
         torchvision.transforms.Compose that:
           1) Converts input to NumPy (H, W, C)
@@ -315,6 +323,8 @@ def build_rs_transform_pipeline(
         transform_list.append(SharpenWrapper())
     if apply_flip:
         transform_list.append(HorizontalVerticalFlipWrapper())
+    if apply_resize112:
+        transform_list.append(Resize112Wrapper())
     # Convert back to Tensor
     transform_list.append(ToTensorCHW(dtype=torch.float32))
 
@@ -364,7 +374,8 @@ def get_remote_sensing_transform(
     apply_contrast=False,
     apply_grayscale=False,
     apply_sharpen=False,
-    apply_flip=False
+    apply_flip=False,
+    apply_resize112=False
 ):
     """
     For multispectral data like BEN or EuroSAT.
@@ -380,5 +391,6 @@ def get_remote_sensing_transform(
         apply_contrast=apply_contrast,
         apply_grayscale=apply_grayscale,
         apply_sharpen=apply_sharpen,
-        apply_flip=apply_flip
+        apply_flip=apply_flip,
+        apply_resize112=apply_resize112
     )
