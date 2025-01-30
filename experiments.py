@@ -45,6 +45,9 @@ parser.add_argument('--apply_flip', action='store_true')
 parser.add_argument('--max_lr', type=float)
 parser.add_argument('--pct_start', type=float)
 parser.add_argument('--patience', type=int)
+
+#latest
+parser.add_argument('--early_stopping', action='store_true')
     
 def experiments():
     args = parser.parse_args()
@@ -126,11 +129,12 @@ def experiments():
         filename=f"{args.arch_name}-{args.task}-{{epoch:d}}-{{{model.best_validation_metric}:.3f}}"
     )
 
-    early_stopping_callback = EarlyStopping(
-        monitor=model.best_validation_metric,
-        patience=args.patience,
-        mode="max"
-    )
+    if args.early_stopping:
+        early_stopping_callback = EarlyStopping(
+            monitor=model.best_validation_metric,
+            patience=args.patience,
+            mode="max"
+        )
 
     wandb_logger = WandbLogger(
         project="milestone3",
@@ -139,7 +143,7 @@ def experiments():
     )
     
     trainer = Trainer(
-        callbacks=[checkpoint_callback,early_stopping_callback],
+        callbacks=[checkpoint_callback,early_stopping_callback] if args.early_stopping else [checkpoint_callback],
         logger=wandb_logger,
         accelerator='auto',
         devices='auto',
