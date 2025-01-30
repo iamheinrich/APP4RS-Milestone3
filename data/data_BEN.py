@@ -6,7 +6,7 @@ from typing import List, Literal, Optional
 
 import lmdb
 import pandas as pd
-import rasterio
+#import rasterio    NOT INSTALLED ON SUBMISSION SERVER MILESONE 3 ENVIRONMENT
 import torch
 from lightning.pytorch import LightningDataModule
 from safetensors.numpy import load as load_np_safetensor
