@@ -1,3 +1,5 @@
+import wandb
+wandb.login(key="d12c4aa89f6e2fb545cabd2314cca6c865e382d2")
 import argparse
 
 from lightning.pytorch import Trainer
@@ -139,7 +141,7 @@ def experiments():
     wandb_logger = WandbLogger(
         project="milestone3",
         log_model=True,
-        offline=True
+        offline=False
     )
     
     trainer = Trainer(
