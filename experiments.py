@@ -143,6 +143,7 @@ def experiments():
     wandb_logger = WandbLogger(
         project="milestone3",
         log_model=True,
+        config = vars(args),
         offline=False
     )
     
