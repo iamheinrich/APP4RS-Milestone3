@@ -5,11 +5,11 @@ from lightning.pytorch import Trainer
 from base import BaseModel
 
 from models import get_network
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from data.data_BEN import BENDataModule
 from data.data_EuroSAT import EuroSATDataModule
 from data.caltech101 import Caltech101DataModule
-from pytorch_lightning.loggers import WandbLogger
+from lightning.pytorch.loggers import WandbLogger
 
 parser = argparse.ArgumentParser(prog='APP4RS', description='Run Experiments.')
 
@@ -118,13 +118,13 @@ def experiments():
     model = BaseModel(args, datamodule, network)
     
     checkpoint_callback = ModelCheckpoint(
-        monitor=model.best_metric,
+        monitor=model.best_validation_metric,
         dirpath="untracked-files",
-        filename=f"{args.arch_name}-{args.task}-{{epoch:d}}-{{{model.best_metric}:.3f}}"
+        filename=f"{args.arch_name}-{args.task}-{{epoch:d}}-{{{model.best_validation_metric}:.3f}}"
     )
 
     early_stopping_callback = EarlyStopping(
-        monitor=model.best_metric,
+        monitor=model.best_validation_metric,
         patience=args.patience,
         mode="max"
     )
@@ -138,8 +138,8 @@ def experiments():
     trainer = Trainer(
         callbacks=[checkpoint_callback,early_stopping_callback],
         logger=wandb_logger,
-        accelerator='gpu',
-        devices=[0],
+        accelerator='auto',
+        devices='auto',
         enable_checkpointing=True,
         max_epochs=args.epochs,
     )
@@ -148,7 +148,7 @@ def experiments():
     trainer.fit(model,datamodule)
     
     best_model_path = trainer.checkpoint_callback.best_model_path # can also be called without trainer.
-    best_model = BaseModel.load_from_checkpoint(best_model_path)
+    best_model = BaseModel.load_from_checkpoint(checkpoint_path=best_model_path, args=args, datamodule=datamodule, network=network)
         
     #TODO reusing same trainer should be no problem right?
     trainer.test(best_model,datamodule)
