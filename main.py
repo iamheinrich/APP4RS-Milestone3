@@ -137,7 +137,7 @@ class ExperimentRunner:
                 "--num_channels", str(ds_config["num_channels"]),
                 "--num_classes", str(ds_config["num_classes"]),
                 "--lmdb_path", ds_config["lmdb_path"],
-                "--metadata_parquet_path", config["metadata_path"]
+                "--metadata_parquet_path", ds_config["metadata_path"]
             ]
 
             for arch_and_pre in arch_name_and_pretrained:
