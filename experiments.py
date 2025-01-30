@@ -107,7 +107,8 @@ def experiments():
         arch_name=args.arch_name,
         num_channels=args.num_channels,
         num_classes=args.num_classes,
-        pretrained=args.pretrained
+        pretrained=args.pretrained,
+        drop_rate=0.3 if args.dropout else 0.0
     )
     
     # Adjust learning rate for Caltech-101
