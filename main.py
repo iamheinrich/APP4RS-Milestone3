@@ -10,15 +10,15 @@ class ExperimentRunner:
                 "task": "mlc",
                 "num_channels": 12,
                 "num_classes": 19, #TODO: Change classes
-                "lmdb_path": "/untracked-files/BigEarthNet/BigEarthNet.lmdb",
-                "metadata_path": "/untracked-files/BigEarthNet/BigEarthNet.parquet"
+                "lmdb_path": "./untracked-files/BigEarthNet/BigEarthNet.lmdb",
+                "metadata_path": "./untracked-files/BigEarthNet/BigEarthNet.parquet"
             },
             "EuroSAT": {
                 "task": "slc",
                 "num_channels": 13,
                 "num_classes": 10, #TODO: Change classes
-                "lmdb_path": "/untracked-files/EuroSAT/EuroSAT.lmdb",
-                "metadata_path": "/untracked-files/EuroSAT/EuroSAT.parquet"
+                "lmdb_path": "./untracked-files/EuroSAT/EuroSAT.lmdb",
+                "metadata_path": "./untracked-files/EuroSAT/EuroSAT.parquet"
             },
             "Caltech-101": {
                 "task": "slc",
