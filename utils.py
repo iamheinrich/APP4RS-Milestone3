@@ -2,9 +2,6 @@
 
 import numpy as np
 from typing import Union, Tuple, List
-from data.data_BEN import BENDataModule
-from data.data_EuroSAT import EuroSATDataModule
-from data.caltech101 import Caltech101DataModule
 import torch
 
 

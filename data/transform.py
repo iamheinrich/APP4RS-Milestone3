@@ -120,7 +120,7 @@ class RandomResizeCropWrapper(AlbumentationsWrapper):
     # Works with float32 and uint8
     # Should work with any number of channels
     def __init__(self):
-        super().__init__(A.RandomResizedCrop(height=100, width=100))
+        super().__init__(A.RandomResizedCrop(height=100, width=100)) #TODO outputdim == inputdim??
 
 class CutOutWrapper(AlbumentationsWrapper):
     # Works with float32 and uint8

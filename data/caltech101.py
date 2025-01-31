@@ -11,22 +11,11 @@ from torchvision import datasets as torch_datasets
 
 from lightning.pytorch import LightningDataModule
 
-from utils import compute_channel_statistics_rgb
-from data.transform import get_caltech_transform, build_pil_transform_pipeline
 
 class Caltech101Dataset(Dataset):
     def __init__(self, dataset_path: str, split: str = None, transform: Optional[transforms.Compose] = None):
         self.dataset = torch_datasets.Caltech101(dataset_path, download=True) #TODO: remove download=True
         self.split = split
-        # Set default transform if none provided
-        if transform is None:
-            transform = build_pil_transform_pipeline(
-                mean=[0.485, 0.456, 0.406],  # Example mean values for RGB
-                std=[0.229, 0.224, 0.225],  # Example std values for RGB
-                apply_sharpness=True,
-                apply_contrast=True,
-                apply_grayscale=True
-            )
         self.transform = transform
         self.resize_to_224x224 = transforms.Resize((224, 224))
         self.targets = np.array(self.dataset.y)
@@ -78,52 +67,37 @@ class Caltech101DataModule(LightningDataModule):
         lmdb_path: str,
         batch_size: int,
         num_workers: int,
-        augmentation_flags: dict = None
+        train_transform = None,
+        val_test_transform =None
     ):
         super().__init__()
         self.dataset_path = lmdb_path
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.augmentation_flags = augmentation_flags or {}
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
 
+        self.train_transform = train_transform
+        self.val_test_transform = val_test_transform
+
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
-            # First create dataset without transforms to compute statistics
+        
             self.train_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='train',
-                transform=None  # No transforms for statistics computation
+                transform=self.train_transform
             )
             
-            # Create a temporary dataloader to compute statistics
-            temp_train_dataloader = torch.utils.data.DataLoader(
-                self.train_dataset,
-                batch_size=self.batch_size,
-                num_workers=self.num_workers,
-                shuffle=False  # No need to shuffle for statistics
-            )
-            
-            # Compute statistics using only training data
-            self.mean, self.std = compute_channel_statistics_rgb(temp_train_dataloader)
-            
-            # Set transforms with computed statistics and augmentations for training
-            self.train_dataset.transform = get_caltech_transform(
-                mean=self.mean,
-                std=self.std,
-                **self.augmentation_flags
-            )
+            #REMOVE START
+            #REMOVE END
             
             # Validation dataset with only normalization, no augmentations
             self.val_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='validation',
-                transform=get_caltech_transform(
-                    mean=self.mean,
-                    std=self.std
-                )
+                transform=self.val_test_transform
             )
             
         if stage == 'test' or stage is None:
@@ -131,10 +105,7 @@ class Caltech101DataModule(LightningDataModule):
             self.test_dataset = Caltech101Dataset(
                 dataset_path=self.dataset_path,
                 split='test',
-                transform=get_caltech_transform(
-                    mean=self.mean,
-                    std=self.std
-                )
+                transform=self.val_test_transform
             )
 
     def train_dataloader(self):

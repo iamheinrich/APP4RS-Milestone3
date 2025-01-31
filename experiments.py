@@ -8,10 +8,14 @@ from base import BaseModel
 
 from models import get_network
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
-from data.data_BEN import BENDataModule
-from data.data_EuroSAT import EuroSATDataModule
-from data.caltech101 import Caltech101DataModule
+from data.data_BEN import BENDataModule, BENIndexableLMDBDataset
+from data.data_EuroSAT import EuroSATDataModule, EuroSATIndexableLMDBDataset
+from data.caltech101 import Caltech101DataModule, Caltech101Dataset
 from lightning.pytorch.loggers import WandbLogger
+
+import torch
+from utils import compute_channel_statistics_rs, compute_channel_statistics_rgb
+from data.transform import get_remote_sensing_transform, get_caltech_transform
 
 parser = argparse.ArgumentParser(prog='APP4RS', description='Run Experiments.')
 
@@ -109,7 +113,64 @@ def experiments():
     # Initialize datamodule
     datamodule_config = dataset_configs[args.dataset]
     datamodule_config["kwargs"]["augmentation_flags"] = augmentation_flags
-    datamodule = datamodule_config["module"](**datamodule_config["kwargs"]) # BenDataModule(args)
+
+    #EUROSET
+    #CALTECH
+    #END BOTH
+    
+    if (args.dataset=="tiny-BEN") or (args.dataset=="EuroSAT"):
+        dataset_class = EuroSATIndexableLMDBDataset if args.dataset=="EuroSAT" else BENIndexableLMDBDataset
+        tmp_train_dataset = dataset_class(
+                lmdb_path=args.lmdb_path,
+                metadata_parquet_path=dataset_configs[args.dataset]["metadata_parquet_path"],
+                bandorder=dataset_configs[args.dataset]["bandorder"],
+                split='train',
+                transform=None
+        )
+    else :
+        tmp_train_dataset = Caltech101Dataset(
+                dataset_path=args.lmdb_path,
+                split='train',
+                transform=None
+        )
+
+    # Create a temporary dataloader to compute statistics
+    temp_train_dataloader = torch.utils.data.DataLoader(
+        tmp_train_dataset,
+        batch_size=dataset_configs[args.dataset]["batch_size"],
+        num_workers=dataset_configs[args.dataset]["num_workers"],
+        shuffle=False  # No need to shuffle for statistics
+    )    
+
+    if (args.dataset=="tiny-BEN") or (args.dataset=="EuroSAT"):
+        # Compute statistics using only training data to prevent leakage
+        mean, std, percentile = compute_channel_statistics_rs(temp_train_dataloader)
+        train_transform = get_remote_sensing_transform(percentile,mean,std,
+                                                 args.apply_random_resize_crop,
+                                                 args.apply_cutout,
+                                                 args.apply_brightness,
+                                                 args.apply_contrast,
+                                                 args.apply_grayscale,
+                                                 args.apply_sharpen,
+                                                 args.apply_flip,
+                                                 args.apply_resize112)
+        val_test_transform = get_remote_sensing_transform(percentile,mean,std,
+                                                 apply_resize112=args.apply_resize112)
+    else:
+        # Compute statistics using only training data
+        mean, std = compute_channel_statistics_rgb(temp_train_dataloader)
+        train_transform = get_caltech_transform(mean,std,
+                                                 args.apply_random_resize_crop,
+                                                 args.apply_cutout,
+                                                 args.apply_brightness,
+                                                 args.apply_contrast,
+                                                 args.apply_grayscale,
+                                                 args.apply_sharpen)
+        val_test_transform = get_caltech_transform(mean,std)
+
+    datamodule = datamodule_config["module"](**datamodule_config["kwargs"],
+                                             train_transform = train_transform,
+                                             val_test_transform =val_test_transform) # BenDataModule(args)
     
     # Initialize network
     network = get_network(
