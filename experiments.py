@@ -122,8 +122,8 @@ def experiments():
         dataset_class = EuroSATIndexableLMDBDataset if args.dataset=="EuroSAT" else BENIndexableLMDBDataset
         tmp_train_dataset = dataset_class(
                 lmdb_path=args.lmdb_path,
-                metadata_parquet_path=dataset_configs[args.dataset]["metadata_parquet_path"],
-                bandorder=dataset_configs[args.dataset]["bandorder"],
+                metadata_parquet_path=dataset_configs[args.dataset]["kwargs"]["metadata_parquet_path"],
+                bandorder=dataset_configs[args.dataset]["kwargs"]["bandorder"],
                 split='train',
                 transform=None
         )
@@ -137,8 +137,8 @@ def experiments():
     # Create a temporary dataloader to compute statistics
     temp_train_dataloader = torch.utils.data.DataLoader(
         tmp_train_dataset,
-        batch_size=dataset_configs[args.dataset]["batch_size"],
-        num_workers=dataset_configs[args.dataset]["num_workers"],
+        batch_size=dataset_configs[args.dataset]["kwargs"]["batch_size"],
+        num_workers=dataset_configs[args.dataset]["kwargs"]["num_workers"],
         shuffle=False  # No need to shuffle for statistics
     )    
 
@@ -208,6 +208,8 @@ def experiments():
         offline=False
     )
     
+    print(wandb_logger.run.id,wandb_logger.run.name)
+
     trainer = Trainer(
         callbacks=[checkpoint_callback,early_stopping_callback] if args.early_stopping else [checkpoint_callback],
         logger=wandb_logger,
