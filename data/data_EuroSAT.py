@@ -366,7 +366,7 @@ class EuroSATDataModule(LightningDataModule):
             
             # Validation and test transforms apply normalization only
             # No augmentations for validation and test
-            val_test_transform = get_remote_sensing_transform(
+            self.val_test_transform = get_remote_sensing_transform(
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std
@@ -378,13 +378,13 @@ class EuroSATDataModule(LightningDataModule):
             # Validation dataset without transforms
             self.val_dataset = self.dataset(
                 split='validation',
-                transform=val_test_transform
+                transform=self.val_test_transform
             )
             
         if stage == 'test' or stage is None:
             self.test_dataset = self.dataset(
                 split='test',
-                transform=val_test_transform
+                transform=self.val_test_transform
             )
 
     def train_dataloader(self):
