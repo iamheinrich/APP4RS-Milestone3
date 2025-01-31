@@ -5,11 +5,11 @@ from lightning.pytorch import Trainer
 from base import BaseModel
 
 from models import get_network
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from data.data_BEN import BENDataModule
 from data.data_EuroSAT import EuroSATDataModule
 from data.caltech101 import Caltech101DataModule
-from pytorch_lightning.loggers import WandbLogger
+from lightning.pytorch.loggers import WandbLogger
 
 parser = argparse.ArgumentParser(prog='APP4RS', description='Run Experiments.')
 
@@ -138,8 +138,8 @@ def experiments():
     trainer = Trainer(
         callbacks=[checkpoint_callback,early_stopping_callback],
         logger=wandb_logger,
-        accelerator='gpu',
-        devices=[0],
+        accelerator='auto', #TODO: Make sure that auto defaults to GPU
+        devices='auto', #TODO: Make sure that auto defaults to GPU
         enable_checkpointing=True,
         max_epochs=args.epochs,
     )
