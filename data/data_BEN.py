@@ -389,7 +389,7 @@ class BENDataModule(LightningDataModule):
             
             # Validation and test transforms apply normalization only
             # Apply augmentations as needed
-            val_test_transform = get_remote_sensing_transform(
+            self.val_test_transform = get_remote_sensing_transform(
                 percentile_values=self.percentile,
                 mean=self.mean,
                 std=self.std
@@ -401,13 +401,13 @@ class BENDataModule(LightningDataModule):
             # Validation dataset without augmentations
             self.val_dataset = self.dataset(
                 split='validation',
-                transform=val_test_transform
+                transform=self.val_test_transform
             )
             
         if stage == 'test' or stage is None:
             self.test_dataset = self.dataset(
                 split='test',
-                transform=val_test_transform
+                transform=self.val_test_transform
             )
 
     def train_dataloader(self):
