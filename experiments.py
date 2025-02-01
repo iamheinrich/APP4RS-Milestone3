@@ -242,7 +242,7 @@ def experiments():
         offline=False
     )
     
-    print(wandb_logger.run.id,wandb_logger.run.name)
+    print(wandb_logger.experiment.id,wandb_logger.experiment.name)
 
     trainer = Trainer(
         callbacks=callbacks,
