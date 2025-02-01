@@ -117,6 +117,7 @@ class ExperimentRunner:
             "--pct_start", "0.3",
 
             "--logging_dir", "untracked-files/logging_dir",
+            "--patience","5",
             "--max_lr", "0.01",
             "--experiment_type", "feature_extraction_study",
 

@@ -1,4 +1,7 @@
 import wandb
+import os
+os.environ["WANDB_MODE"] = "online"
+os.environ["WANDB_API_KEY"] = "d12c4aa89f6e2fb545cabd2314cca6c865e382d2"
 wandb.login(key="d12c4aa89f6e2fb545cabd2314cca6c865e382d2")
 import argparse
 
@@ -244,8 +247,8 @@ def experiments():
     trainer = Trainer(
         callbacks=callbacks,
         logger=wandb_logger,
-        accelerator='auto',
-        devices='auto',
+        accelerator='gpu',  #'auto',
+        devices=[0], #'auto',
         enable_checkpointing=True,
         max_epochs=args.epochs,
     )
@@ -253,7 +256,7 @@ def experiments():
     # training
     trainer.fit(model,datamodule)
     
-    best_model_path = trainer.checkpoint_callback.best_model_path # can also be called without trainer.
+    best_model_path = checkpoint_callback.best_model_path # can also be called without trainer.
     best_model = BaseModel.load_from_checkpoint(checkpoint_path=best_model_path, args=args, datamodule=datamodule, network=network)
         
     trainer.test(best_model,datamodule)
