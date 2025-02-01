@@ -19,7 +19,7 @@ from data.transform import get_remote_sensing_transform, get_caltech_transform
 
 parser = argparse.ArgumentParser(prog='APP4RS', description='Run Experiments.')
 
-parser.add_argument('--task', type=str, default='slc')
+parser.add_argument('--task', type=str)
 parser.add_argument('--logging_dir', type=str)
     
 parser.add_argument('--dataset', type=str)
@@ -55,6 +55,9 @@ parser.add_argument('--patience', type=int)
 
 #latest
 parser.add_argument('--early_stopping', action='store_true')
+
+#for wandb project argument
+parser.add_argument('--experiment_type', type=str)
     
 def experiments():
     args = parser.parse_args()
@@ -201,8 +204,30 @@ def experiments():
             mode="max"
         )
 
+    if args.experiment_type == "multi_model_benchmark":
+        pretrained_str = "pretrained" if args.pretrained else "retrain"
+        dropout_str = "dropout" if args.dropout else "dropless"
+        run_name = f"{args.arch_name}_{pretrained_str}_{dropout_str}"
+    elif args.experiment_type == "augmentation_study":
+        if args.apply_random_resize_crop:
+            run_name = "apply_random_resize_crop"
+        if args.apply_cutout:
+            run_name = "apply_cutout"
+        if args.apply_brightness:
+            run_name = "apply_brightness"
+        if args.apply_contrast:
+            run_name = "apply_contrast"
+        if args.apply_grayscale:
+            run_name = "apply_grayscale"
+    elif args.experiment_type == "feature_extraction_study":
+        run_name = "tsne_resnet18_eurosat"
+    else:
+        raise NotImplementedError(f"This args.experiment_type:{args.experiment_type} is not implemented in experiments.py")
+
     wandb_logger = WandbLogger(
-        project="milestone3",
+        project=args.experiment_type,
+        group=args.dataset,
+        name=run_name,
         log_model=True,
         config = vars(args),
         offline=False
