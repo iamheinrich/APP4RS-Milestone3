@@ -1,5 +1,6 @@
 import subprocess
 import os
+from tsne_analysis import run_tsne_analysis
 
 class ExperimentRunner:
     """ Class to run experiments """
@@ -193,6 +194,10 @@ def main():
     # Run feature extraction study experiment
     print("Task 7: Starting Feature Extraction Study...")
     runner.run_feature_extraction_study()
+    
+    # Run t-SNE analysis
+    print("Task 7: Starting t-SNE Analysis...")
+    run_tsne_analysis()
 
     # Run multi-model benchmark experiment
     print("Task 6: Starting Multi Model Benchmark Experiment...")

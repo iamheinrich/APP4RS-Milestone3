@@ -157,10 +157,6 @@ class FeatureExtractionCallback(Callback):
             features = np.concatenate(self.feature_representations, axis=0)  # Concatenate all batch features
             labels = np.array(self.labels)
             
-            # Save to untracked-files (for remote server)
-            np.save(f"./untracked-files/features/epoch_{epoch}_features.npy", features)
-            np.save(f"./untracked-files/features/epoch_{epoch}_labels.npy", labels)
-            
             # Save to features/extracted (for version control)
             np.save(f"./features/extracted/epoch_{epoch}_features.npy", features)
             np.save(f"./features/extracted/epoch_{epoch}_labels.npy", labels)
