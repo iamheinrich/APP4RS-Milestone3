@@ -76,7 +76,7 @@ class Uint16NormalizeNumpy:
         # x shape => (H, W, C), probably dtype uint16 or float
         if x.ndim != 3:
             raise ValueError(f"Expected (H, W, C), got shape {x.shape}")
-        assert x.dtype == np.uint16, f"Expected dtype uint16, got {x.dtype}"
+        #assert x.dtype == np.uint16, f"Expected dtype uint16, got {x.dtype}"
 
         h, w, c = x.shape
         if len(self.percentile_values) != c:
