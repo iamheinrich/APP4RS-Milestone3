@@ -117,12 +117,10 @@ class ExperimentRunner:
             "--pct_start", "0.3",
 
             "--logging_dir", "untracked-files/logging_dir",
-            "--patience","5",
             "--max_lr", "0.01",
             "--experiment_type", "feature_extraction_study",
-            #"--early_stopping",
 
-            "--arch_name","ResNet18",#"--pretrained","--dropout"
+            "--arch_name", "ResNet18",
             "--task", "slc",
             "--dataset", "EuroSAT",
             "--num_channels", "13",
@@ -132,6 +130,7 @@ class ExperimentRunner:
         ]
 
         self._run_command(self.base_command + fixed_parameters)
+    
     
     def run_multi_model_benchmark_experiment(self) -> None:
         """Task 6: Run multi-model benchmark experiment."""
@@ -188,15 +187,15 @@ def main():
     
     # Ensure necessary directories exist
     os.makedirs("logs", exist_ok=True)
-    #os.makedirs("untracked-files", exist_ok=True)
+    os.makedirs("untracked-files/features", exist_ok=True)
     
-    # Run augmentation study experiment
+    # Run feature extraction study experiment
+    print("Task 7: Starting Feature Extraction Study...")
+    runner.run_feature_extraction_study()
+
+    # Run multi-model benchmark experiment
     print("Task 6: Starting Multi Model Benchmark Experiment...")
     runner.run_multi_model_benchmark_experiment()
-
-    # Run augmentation study experiment
-    #print("Task 7: Starting Feature Extraction Study...")
-    #runner.run_feature_extraction_study()
 
     # Run augmentation study experiment
     print("Task 9: Starting Data Augmentation Study...")

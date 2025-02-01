@@ -7,14 +7,14 @@ from lightning.pytorch import Trainer
 from base import BaseModel
 
 from models import get_network
-from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from data.data_BEN import BENDataModule, BENIndexableLMDBDataset
 from data.data_EuroSAT import EuroSATDataModule, EuroSATIndexableLMDBDataset
 from data.caltech101 import Caltech101DataModule, Caltech101Dataset
 from lightning.pytorch.loggers import WandbLogger
 
 import torch
-from utils import compute_channel_statistics_rs, compute_channel_statistics_rgb
+from utils import compute_channel_statistics_rs, compute_channel_statistics_rgb, FeatureExtractionCallback
 from data.transform import get_remote_sensing_transform, get_caltech_transform
 
 parser = argparse.ArgumentParser(prog='APP4RS', description='Run Experiments.')
@@ -187,19 +187,27 @@ def experiments():
     # Initialize model
     model = BaseModel(args, datamodule, network)
     
+    # Initialize callbacks
+    callbacks = []
+    
+    # Always add checkpoint callback
     checkpoint_callback = ModelCheckpoint(
         monitor=model.best_validation_metric,
         dirpath="untracked-files",
         filename=f"{args.arch_name}-{args.task}-{{epoch:d}}-{{{model.best_validation_metric}:.3f}}"
     )
+    callbacks.append(checkpoint_callback)
 
+    # Add early stopping if enabled
     if args.early_stopping:
         early_stopping_callback = EarlyStopping(
             monitor=model.best_validation_metric,
             patience=args.patience,
             mode="max"
         )
+        callbacks.append(early_stopping_callback)
 
+    # Configure run name based on experiment type
     if args.experiment_type == "multi_model_benchmark":
         pretrained_str = "pretrained" if args.pretrained else "retrain"
         dropout_str = "dropout" if args.dropout else "dropless"
@@ -217,6 +225,8 @@ def experiments():
             run_name = "apply_grayscale"
     elif args.experiment_type == "feature_extraction_study":
         run_name = "tsne_resnet18_eurosat"
+        feature_extraction_callback = FeatureExtractionCallback()
+        callbacks.append(feature_extraction_callback)
     else:
         raise NotImplementedError(f"This args.experiment_type:{args.experiment_type} is not implemented in experiments.py")
 
@@ -232,7 +242,7 @@ def experiments():
     print(wandb_logger.run.id,wandb_logger.run.name)
 
     trainer = Trainer(
-        callbacks=[checkpoint_callback,early_stopping_callback] if args.early_stopping else [checkpoint_callback],
+        callbacks=callbacks,
         logger=wandb_logger,
         accelerator='auto',
         devices='auto',
