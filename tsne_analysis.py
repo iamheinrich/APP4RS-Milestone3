@@ -35,6 +35,6 @@ for epoch in [5, 10]:
     plt.tight_layout()
     
     # Save
-    plt.savefig(f"./attachment/plots/tsne_epoch_{epoch}.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"./attachments/plots/tsne_epoch_{epoch}.png", dpi=300, bbox_inches='tight')
     print(f"Saved plot for epoch {epoch}")
     plt.close()
