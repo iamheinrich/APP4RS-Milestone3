@@ -89,7 +89,7 @@ def experiments():
         "Caltech-101": {
             "module": Caltech101DataModule,
             "kwargs": {
-                "lmdb_path": "./untracked-files/caltech101",
+                "lmdb_path": args.lmdb_path,
                 "batch_size": args.batch_size,
                 "num_workers": args.num_workers
                 #TODO: Add bandorder?
@@ -115,7 +115,7 @@ def experiments():
 
     # Initialize datamodule
     datamodule_config = dataset_configs[args.dataset]
-    datamodule_config["kwargs"]["augmentation_flags"] = augmentation_flags
+    #datamodule_config["kwargs"]["augmentation_flags"] = augmentation_flags 
 
     #EUROSET
     #CALTECH
@@ -184,10 +184,6 @@ def experiments():
         drop_rate=0.3 if args.dropout else 0.0
     )
     
-    # Adjust learning rate for Caltech-101
-    if args.dataset == "Caltech-101":
-        args.learning_rate = 0.025 #TODO: Check if this is true for all experiments. And add to args.
-    
     # Initialize model
     model = BaseModel(args, datamodule, network)
     
@@ -211,13 +207,13 @@ def experiments():
     elif args.experiment_type == "augmentation_study":
         if args.apply_random_resize_crop:
             run_name = "apply_random_resize_crop"
-        if args.apply_cutout:
+        elif args.apply_cutout:
             run_name = "apply_cutout"
-        if args.apply_brightness:
+        elif args.apply_brightness:
             run_name = "apply_brightness"
-        if args.apply_contrast:
+        elif args.apply_contrast:
             run_name = "apply_contrast"
-        if args.apply_grayscale:
+        elif args.apply_grayscale:
             run_name = "apply_grayscale"
     elif args.experiment_type == "feature_extraction_study":
         run_name = "tsne_resnet18_eurosat"
@@ -250,7 +246,6 @@ def experiments():
     best_model_path = trainer.checkpoint_callback.best_model_path # can also be called without trainer.
     best_model = BaseModel.load_from_checkpoint(checkpoint_path=best_model_path, args=args, datamodule=datamodule, network=network)
         
-    #TODO reusing same trainer should be no problem right?
     trainer.test(best_model,datamodule)
 
 if __name__ == "__main__":

@@ -8,22 +8,22 @@ class ExperimentRunner:
         self.datasets = {
             "tiny-BEN": {
                 "task": "mlc",
-                "num_channels": 12,
-                "num_classes": 19,
+                "num_channels": "12",
+                "num_classes": "19",
                 "lmdb_path": "./untracked-files/BigEarthNet/BigEarthNet.lmdb",
                 "metadata_path": "./untracked-files/BigEarthNet/BigEarthNet.parquet"
             },
             "EuroSAT": {
                 "task": "slc",
-                "num_channels": 13, #TODO: Verify
-                "num_classes": 10,
+                "num_channels": "13", #TODO: Verify
+                "num_classes": "10",
                 "lmdb_path": "./untracked-files/EuroSAT/EuroSAT.lmdb",
                 "metadata_path": "./untracked-files/EuroSAT/EuroSAT.parquet"
             },
             "Caltech-101": {
                 "task": "slc",
-                "num_channels": 3,
-                "num_classes": 101,
+                "num_channels": "3",
+                "num_classes": "101",
                 "lmdb_path": "./untracked-files/caltech101",
                 "metadata_path": None
             }
@@ -87,8 +87,8 @@ class ExperimentRunner:
             base_cmd = self.base_command + [
                 "--task", config["task"],
                 "--dataset", dataset_name,
-                "--num_channels", str(config["num_channels"]),
-                "--num_classes", str(config["num_classes"]),
+                "--num_channels", config["num_channels"],
+                "--num_classes", config["num_classes"],
                 "--lmdb_path", config["lmdb_path"],
                 #"--pretrained", "False",
             ] + fixed_parameters + lr
@@ -125,8 +125,8 @@ class ExperimentRunner:
             "--arch_name","ResNet18",#"--pretrained","--dropout"
             "--task", "slc",
             "--dataset", "EuroSAT",
-            "--num_channels", 13,
-            "--num_classes", 10,
+            "--num_channels", "13",
+            "--num_classes", "10",
             "--lmdb_path", "./untracked-files/EuroSAT/EuroSAT.lmdb",
             "--metadata_parquet_path", "./untracked-files/EuroSAT/EuroSAT.parquet"
         ]
@@ -167,15 +167,15 @@ class ExperimentRunner:
             base_cmd = self.base_command + fixed_parameters + [
                 "--task", ds_config["task"],
                 "--dataset", dataset_name,
-                "--num_channels", str(ds_config["num_channels"]),
-                "--num_classes", str(ds_config["num_classes"]),
+                "--num_channels", ds_config["num_channels"],
+                "--num_classes", ds_config["num_classes"],
                 "--lmdb_path", ds_config["lmdb_path"],
                 "--metadata_parquet_path", ds_config["metadata_path"]
             ]
 
             for arch_and_pre in arch_name_and_pretrained:
 
-                transformer_sensitive_cmd = arch_and_pre + ("--apply_resize112" if arch_and_pre[1]=="ViT-Tiny" else [])
+                transformer_sensitive_cmd = arch_and_pre + (["--apply_resize112"] if arch_and_pre[1]=="ViT-Tiny" else [])
 
                 print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropout,{dataset_name}")
                 self._run_command(base_cmd + transformer_sensitive_cmd)
