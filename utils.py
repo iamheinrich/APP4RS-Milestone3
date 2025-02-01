@@ -125,7 +125,7 @@ class FeatureExtractionCallback(Callback):
         self.labels = []
         # Create both directories
         os.makedirs("./untracked-files/features", exist_ok=True)
-        os.makedirs("./features/extracted", exist_ok=True)
+        os.makedirs("./untracked-files/features/extracted", exist_ok=True)
 
     def on_fit_start(self, trainer, pl_module):
         """Register hook on global pooling layer on forward pass."""
@@ -158,8 +158,8 @@ class FeatureExtractionCallback(Callback):
             labels = np.array(self.labels)
             
             # Save to features/extracted (for version control)
-            np.save(f"./features/extracted/epoch_{epoch}_features.npy", features)
-            np.save(f"./features/extracted/epoch_{epoch}_labels.npy", labels)
+            np.save(f"./untracked-files/features/extracted/epoch_{epoch}_features.npy", features)
+            np.save(f"./untracked-files/features/extracted/epoch_{epoch}_labels.npy", labels)
             
             print(f"Saved features and labels for epoch {epoch}")
             # Clear buffers after saving

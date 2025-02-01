@@ -187,9 +187,11 @@ def main():
     # Create experiment runner
     runner = ExperimentRunner()
     
+    features_dir = "./untracked-files/features/extracted"
+
     # Ensure necessary directories exist
     os.makedirs("logs", exist_ok=True)
-    os.makedirs("untracked-files/features", exist_ok=True)
+    os.makedirs(features_dir, exist_ok=True)
     
     # Run feature extraction study experiment
     print("Task 7: Starting Feature Extraction Study...")
@@ -197,7 +199,7 @@ def main():
     
     # Run t-SNE analysis
     print("Task 7: Starting t-SNE Analysis...")
-    run_tsne_analysis()
+    run_tsne_analysis(features_dir, "./attachments/")
 
     # Run multi-model benchmark experiment
     print("Task 6: Starting Multi Model Benchmark Experiment...")
