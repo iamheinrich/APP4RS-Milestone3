@@ -122,7 +122,10 @@ class FeatureExtractionCallback(Callback):
     def __init__(self):
         super().__init__()
         self.feature_representations = []
+        self.labels = []
+        # Create both directories
         os.makedirs("./untracked-files/features", exist_ok=True)
+        os.makedirs("./features/extracted", exist_ok=True)
 
     def on_fit_start(self, trainer, pl_module):
         """Register hook on global pooling layer on forward pass."""
@@ -143,16 +146,29 @@ class FeatureExtractionCallback(Callback):
         epoch = trainer.current_epoch + 1  # starts usually with 0 
         _, labels = batch 
         if epoch in [5, 10]:
-            self.labels.append(labels.cpu().numpy()) 
+            # Convert one-hot encoded labels to class indices
+            label_indices = torch.argmax(labels, dim=1)
+            self.labels.extend(label_indices.cpu().numpy())
 
     def on_train_epoch_end(self, trainer, pl_module):
-        """Save feature representations at epochs 5 and 10."""
+        """Save feature representations and labels at epochs 5 and 10."""
         epoch = trainer.current_epoch + 1  # starts usually with 0 
         if epoch in [5, 10] and self.feature_representations:
-            features = torch.cat(self.feature_representations, dim=0).numpy()  # Concatenate all batch features
-            np.save(f"./untracked-files/features/epoch_{epoch}_features.npy", features)  # Save to file
-            print(f"Saved features for epoch {epoch}")
-            self.feature_representations.clear()  # Clear buffer after saving
+            features = np.concatenate(self.feature_representations, axis=0)  # Concatenate all batch features
+            labels = np.array(self.labels)
+            
+            # Save to untracked-files (for remote server)
+            np.save(f"./untracked-files/features/epoch_{epoch}_features.npy", features)
+            np.save(f"./untracked-files/features/epoch_{epoch}_labels.npy", labels)
+            
+            # Save to features/extracted (for version control)
+            np.save(f"./features/extracted/epoch_{epoch}_features.npy", features)
+            np.save(f"./features/extracted/epoch_{epoch}_labels.npy", labels)
+            
+            print(f"Saved features and labels for epoch {epoch}")
+            # Clear buffers after saving
+            self.feature_representations.clear()
+            self.labels.clear()
 
     def on_fit_end(self, trainer, pl_module):
         """Remove hook."""
