@@ -170,13 +170,13 @@ class ExperimentRunner:
         ]
 
         arch_name_and_pretrained = [
-            #["--arch_name","CustomCNN"],
-            #["--arch_name","ResNet18"],                                                                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            ["--arch_name","CustomCNN"],
+            ["--arch_name","ResNet18"],                                                                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
             ["--arch_name","ResNet18","--pretrained"],                                                                     #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ConvNeXt-Nano"],                                                                               #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ConvNeXt-Nano","--pretrained"],                                                                #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ViT-Tiny"],                                                                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ViT-Tiny","--pretrained"],                                                                     #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            ["--arch_name","ConvNeXt-Nano"],                                                                               #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            ["--arch_name","ConvNeXt-Nano","--pretrained"],                                                                #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            ["--arch_name","ViT-Tiny"],                                                                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            ["--arch_name","ViT-Tiny","--pretrained"],                                                                     #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
         ]
 
         for dataset_name, ds_config in self.datasets.items():
@@ -200,12 +200,12 @@ class ExperimentRunner:
 
                 print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropout,{dataset_name}")
                 self._run_command(base_cmd + transformer_sensitive_cmd)
-                #print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropless,{dataset_name}")                           #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-                #self._run_command(base_cmd + transformer_sensitive_cmd + ["--dropout"])                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+                print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropless,{dataset_name}")                           #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+                self._run_command(base_cmd + transformer_sensitive_cmd + ["--dropout"])                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
 
 def main():
     ds_statistics = {}
-    """
+
     tmp_train_dataset =BENIndexableLMDBDataset(
         lmdb_path="./untracked-files/BigEarthNet/BigEarthNet.lmdb",
         metadata_parquet_path="./untracked-files/BigEarthNet/BigEarthNet.parquet",
@@ -233,8 +233,8 @@ def main():
     )
     temp_train_dataloader = torch.utils.data.DataLoader(tmp_train_dataset,batch_size=32,num_workers=4,shuffle=False)
     ds_statistics["Caltech-101"] = compute_channel_statistics_rgb(temp_train_dataloader)
-    """
-    ds_statistics = {"tiny-BEN":(0.5,0.2,200),"EuroSAT":(0.5,0.2,200),"Caltech-101":(0.5,0.2)}
+    
+    #ds_statistics = {"tiny-BEN":(0.5,0.2,200),"EuroSAT":(0.5,0.2,200),"Caltech-101":(0.5,0.2)}
 
     print(ds_statistics)
 ############################################################
