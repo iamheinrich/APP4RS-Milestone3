@@ -36,7 +36,7 @@ def run_tsne_analysis(features_dir, output_dir):
         plt.tight_layout()
         
         # Save with lower DPI
-        plt.savefig(os.path.join(output_dir, f"tsne_epoch_{epoch}.jpg"), dpi=100, bbox_inches='tight', quality=80)
+        plt.savefig(os.path.join(output_dir, f"tsne_epoch_{epoch}.jpg"), dpi=300, bbox_inches='tight')
         print(f"Saved plot for epoch {epoch} at 480p resolution")
         plt.close()
 
