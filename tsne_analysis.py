@@ -5,7 +5,7 @@ from data.data_EuroSAT import EUROSAT_CLASSES
 import os
 
 def run_tsne_analysis(features_dir, output_dir):
-    """Run t-SNE analysis on extracted features and save visualizations."""
+    """Run t-SNE analysis on extracted features and save visualizations with optimized resolution."""
     os.makedirs(output_dir, exist_ok=True)
     
     for epoch in [5, 10]:
@@ -20,21 +20,21 @@ def run_tsne_analysis(features_dir, output_dir):
         tsne = TSNE(random_state=42)
         features_2d = tsne.fit_transform(features)
         
-        # Plot
-        plt.figure(figsize=(12, 8))
+        # Reduce plot size: 6.4 x 4.8 inches = 480p, lower DPI to 100
+        plt.figure(figsize=(6.4, 4.8))  # 640x480 pixels at DPI=100
         colors = plt.cm.rainbow(np.linspace(0, 1, len(EUROSAT_CLASSES)))
         
         for i, (label, color) in enumerate(zip(EUROSAT_CLASSES, colors)):
             mask = labels == i
-            plt.scatter(features_2d[mask, 0], features_2d[mask, 1], c=[color], label=label, alpha=0.6)
+            plt.scatter(features_2d[mask, 0], features_2d[mask, 1], c=[color], label=label, alpha=0.6, s=8)  # Reduce point size
         
-        plt.title(f't-SNE Visualization (Epoch {epoch})')
-        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.title(f't-SNE Visualization (Epoch {epoch})', fontsize=10)
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
         plt.tight_layout()
         
-        # Save
-        plt.savefig(os.path.join(output_dir, f"tsne_epoch_{epoch}.png"), dpi=300, bbox_inches='tight')
-        print(f"Saved plot for epoch {epoch}")
+        # Save with lower DPI
+        plt.savefig(os.path.join(output_dir, f"tsne_epoch_{epoch}.jpg"), dpi=100, bbox_inches='tight', quality=80)
+        print(f"Saved plot for epoch {epoch} at 480p resolution")
         plt.close()
 
 if __name__ == "__main__":
