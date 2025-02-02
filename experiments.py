@@ -1,8 +1,8 @@
 import wandb
 import os
-os.environ["WANDB_MODE"] = "online"
-os.environ["WANDB_API_KEY"] = "d12c4aa89f6e2fb545cabd2314cca6c865e382d2"
-wandb.login(key="d12c4aa89f6e2fb545cabd2314cca6c865e382d2")
+#os.environ["WANDB_MODE"] = "online"
+#os.environ["WANDB_API_KEY"] = "d12c4aa89f6e2fb545cabd2314cca6c865e382d2"
+#wandb.login(key="d12c4aa89f6e2fb545cabd2314cca6c865e382d2")
 import argparse
 
 from lightning.pytorch import Trainer
@@ -219,7 +219,7 @@ def experiments():
         name=run_name,
         log_model=True,
         config = vars(args),
-        offline=False
+        offline=True
     )
     
     print(wandb_logger.experiment.id,wandb_logger.experiment.name)
@@ -227,8 +227,8 @@ def experiments():
     trainer = Trainer(
         callbacks=callbacks,
         logger=wandb_logger,
-        accelerator='gpu',  #'auto',
-        devices=[0], #'auto',
+        accelerator='auto',
+        devices='auto',
         enable_checkpointing=True,
         max_epochs=args.epochs,
     )

@@ -67,6 +67,7 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.training_step_outputs.append(output)
 
+        print(self.probs_to_preds(probabilities).shape, self.ds_based_argsmax(y).shape)
         self.metric_collection.update(self.probs_to_preds(probabilities), (self.ds_based_argsmax(y)).long()) # Cast to long type for metrics
 
         return batch_loss #what we return is irrelevant in latest lightning version
