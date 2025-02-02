@@ -160,17 +160,17 @@ class ExperimentRunner:
         ]
 
         arch_name_and_pretrained = [
-            ["--arch_name","CustomCNN"],
-            #["--arch_name","ResNet18"],                                                                                    TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ResNet18","--pretrained"],                                                                     TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ConvNeXt-Nano"],                                                                               TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ConvNeXt-Nano","--pretrained"],                                                                TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ViT-Tiny"],                                                                                    TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-            #["--arch_name","ViT-Tiny","--pretrained"],                                                                     TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","CustomCNN"],
+            #["--arch_name","ResNet18"],                                                                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            ["--arch_name","ResNet18","--pretrained"],                                                                     #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ConvNeXt-Nano"],                                                                               #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ConvNeXt-Nano","--pretrained"],                                                                #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ViT-Tiny"],                                                                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ViT-Tiny","--pretrained"],                                                                     #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
         ]
 
         for dataset_name, ds_config in self.datasets.items():
-            if (dataset_name=="Caltech-101") or (dataset_name=="EuroSAT"):#                                                 TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            if (dataset_name=="Caltech-101") or (dataset_name=="tiny-BEN"):#                                                 #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
                 continue
             base_cmd = self.base_command + fixed_parameters + [
                 "--task", ds_config["task"],
@@ -187,8 +187,8 @@ class ExperimentRunner:
 
                 print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropout,{dataset_name}")
                 self._run_command(base_cmd + transformer_sensitive_cmd)
-                #print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropless,{dataset_name}")                           TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
-                #self._run_command(base_cmd + transformer_sensitive_cmd + ["--dropout"])                                    TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+                #print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropless,{dataset_name}")                           #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+                #self._run_command(base_cmd + transformer_sensitive_cmd + ["--dropout"])                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
 
 def main():
     # Create experiment runner
