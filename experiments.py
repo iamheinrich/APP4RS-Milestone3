@@ -217,7 +217,7 @@ def experiments():
         project=args.experiment_type,
         group=args.dataset,
         name=run_name,
-        log_model=True,
+        #log_model=True,
         config = vars(args),
         offline=True
     )
