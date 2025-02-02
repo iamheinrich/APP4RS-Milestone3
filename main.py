@@ -35,22 +35,26 @@ class ExperimentRunner:
         print(f"Running command: {' '.join(command)}")
         result = subprocess.run(command, capture_output=True, text=True) # Subprocesses are executed synchronously
         
+        # Truncate stdout
+        if result.stdout:
+            output_lines = result.stdout.splitlines()
+            if len(output_lines) > 20:
+                print("Output (truncated):")
+                print("\n".join(output_lines[:10] + ["..."] + output_lines[-10:]))
+            else:
+                print("Output:")
+                print(result.stdout)
+        
+        # Print any errors
+        if result.stderr:
+            print("Error messages:")
+            stderr_lines = result.stderr.splitlines()
+            if len(stderr_lines) > 20:
+                print("\n".join(stderr_lines[:10] + ["..."] + stderr_lines[-10:]))
+            else:
+                print(result.stderr)
+        
         if result.returncode == 0:
-            print("Training completed successfully.")
-            if result.stdout:
-                print("Output:")
-                print(result.stdout)
-            if result.stderr:
-                print("Error messages:")
-                print(result.stderr)
-        else:
-            print("Training failed!")
-            if result.stdout:
-                print("Output:")
-                print(result.stdout)
-            if result.stderr:
-                print("Error messages:")
-                print(result.stderr)
 
     def run_augmentation_study(self) -> None:
         """Run augmentation study experiment."""
@@ -201,13 +205,13 @@ def main():
     print("Task 7: Starting t-SNE Analysis...")
     run_tsne_analysis(features_dir, "./attachments/")
 
-    # Run multi-model benchmark experiment
-    print("Task 6: Starting Multi Model Benchmark Experiment...")
-    runner.run_multi_model_benchmark_experiment()
+    # # Run multi-model benchmark experiment
+    # print("Task 6: Starting Multi Model Benchmark Experiment...")
+    # runner.run_multi_model_benchmark_experiment()
 
-    # Run augmentation study experiment
-    print("Task 9: Starting Data Augmentation Study...")
-    runner.run_augmentation_study()
+    # # Run augmentation study experiment
+    # print("Task 9: Starting Data Augmentation Study...")
+    # runner.run_augmentation_study()
 
 
 if __name__ == "__main__":
