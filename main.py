@@ -95,7 +95,7 @@ class ExperimentRunner:
         for dataset_name, config in self.datasets.items():
             if dataset_name=="tiny-BEN":#                                                 #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
                 continue
-            
+
             if dataset_name == "Caltech-101":
                 lr = ["--learning_rate", "0.025","--max_lr", "0.125"]
             else:
@@ -208,16 +208,18 @@ class ExperimentRunner:
 
 def main():
     ds_statistics = {}
-
+    
+    """
     tmp_train_dataset =BENIndexableLMDBDataset(
         lmdb_path="./untracked-files/BigEarthNet/BigEarthNet.lmdb",
-        metadata_parquet_path="./untracked-files/BigEarthNet/BigEarthNet.parquet",
+        metadata_parquet_path="./untracked-files/BigEarthNet/BigEarthNet.parquet",                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE
         bandorder=["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B11", "B12", "B8A"],
         split='train',
         transform=None
     )
     temp_train_dataloader = torch.utils.data.DataLoader(tmp_train_dataset,batch_size=32,num_workers=4,shuffle=False)
     ds_statistics["tiny-BEN"] = compute_channel_statistics_rs(temp_train_dataloader)
+    """
 
     tmp_train_dataset = EuroSATIndexableLMDBDataset(
         lmdb_path="./untracked-files/EuroSAT/EuroSAT.lmdb",
