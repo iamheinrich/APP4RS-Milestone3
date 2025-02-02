@@ -35,7 +35,7 @@ class ExperimentRunner:
         print(f"Running command: {' '.join(command)}")
         result = subprocess.run(command, capture_output=True, text=True) # Subprocesses are executed synchronously
         
-        # Truncate stdout
+        # Truncate stdout cause attachments file is too bug
         if result.stdout:
             output_lines = result.stdout.splitlines()
             if len(output_lines) > 20:
@@ -55,6 +55,9 @@ class ExperimentRunner:
                 print(result.stderr)
         
         if result.returncode == 0:
+            print("Training completed successfully.")
+        else:
+            print("Training failed!")
 
     def run_augmentation_study(self) -> None:
         """Run augmentation study experiment."""
