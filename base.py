@@ -67,7 +67,7 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.training_step_outputs.append(output)
 
-        self.metric_collection.update(self.probs_to_preds(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
+        self.metric_collection.update(self.probs_to_preds(probabilities), (self.argsmax_if_slc(y)).long()) # Cast to long type for metrics
 
         return batch_loss #what we return is irrelevant in latest lightning version
 
@@ -82,7 +82,7 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.validation_step_outputs.append(output)
 
-        self.metric_collection.update(self.probs_to_preds(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
+        self.metric_collection.update(self.probs_to_preds(probabilities), (self.argsmax_if_slc(y)).long()) # Cast to long type for metrics
 
         return output
 
@@ -97,7 +97,7 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.test_step_outputs.append(output)
 
-        self.metric_collection.update(self.probs_to_preds(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
+        self.metric_collection.update(self.probs_to_preds(probabilities), (self.argsmax_if_slc(y)).long()) # Cast to long type for metrics
 
         return output
 
