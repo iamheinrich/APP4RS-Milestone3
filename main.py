@@ -93,6 +93,9 @@ class ExperimentRunner:
 
         
         for dataset_name, config in self.datasets.items():
+            if dataset_name=="tiny-BEN":#                                                 #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+                continue
+            
             if dataset_name == "Caltech-101":
                 lr = ["--learning_rate", "0.025","--max_lr", "0.125"]
             else:
@@ -180,7 +183,7 @@ class ExperimentRunner:
         ]
 
         for dataset_name, ds_config in self.datasets.items():
-            if (dataset_name=="Caltech-101"):#  or (dataset_name=="tiny-BEN")                                                #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            if (dataset_name=="Caltech-101") or (dataset_name=="tiny-BEN"):#                                                 #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
                 continue
             base_cmd = self.base_command + fixed_parameters + [
                 "--mean",str(stats_dict[dataset_name][0]),
@@ -258,13 +261,14 @@ def main():
     #print("Task 7: Starting t-SNE Analysis...")
     #run_tsne_analysis(features_dir, "./attachments/")
 
+    # # Run augmentation study experiment
+    print("Task 9: Starting Data Augmentation Study...")
+    runner.run_augmentation_study(stats_dict=ds_statistics)
+    
     # # Run multi-model benchmark experiment
     print("Task 6: Starting Multi Model Benchmark Experiment...")
     runner.run_multi_model_benchmark_experiment(stats_dict=ds_statistics)
 
-    # # Run augmentation study experiment
-    print("Task 9: Starting Data Augmentation Study...")
-    runner.run_augmentation_study(stats_dict=ds_statistics)
 
 
 if __name__ == "__main__":
