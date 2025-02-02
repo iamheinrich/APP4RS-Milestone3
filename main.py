@@ -180,7 +180,7 @@ class ExperimentRunner:
         ]
 
         for dataset_name, ds_config in self.datasets.items():
-            if (dataset_name=="Caltech-101") or (dataset_name=="tiny-BEN"):#                                                 #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            if (dataset_name=="Caltech-101"):#  or (dataset_name=="tiny-BEN")                                                #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
                 continue
             base_cmd = self.base_command + fixed_parameters + [
                 "--mean",str(stats_dict[dataset_name][0]),
@@ -205,6 +205,7 @@ class ExperimentRunner:
 
 def main():
     ds_statistics = {}
+    """
     tmp_train_dataset =BENIndexableLMDBDataset(
         lmdb_path="./untracked-files/BigEarthNet/BigEarthNet.lmdb",
         metadata_parquet_path="./untracked-files/BigEarthNet/BigEarthNet.parquet",
@@ -232,8 +233,10 @@ def main():
     )
     temp_train_dataloader = torch.utils.data.DataLoader(tmp_train_dataset,batch_size=32,num_workers=4,shuffle=False)
     ds_statistics["Caltech-101"] = compute_channel_statistics_rgb(temp_train_dataloader)
+    """
+    ds_statistics = {"tiny-BEN":(0.5,0.2,200),"EuroSAT":(0.5,0.2,200),"Caltech-101":(0.5,0.2)}
 
-
+    print(ds_statistics)
 ############################################################
 #  UNTIL HERE STATISTICS TRICK FOR EFFECIENT SERVER RUNS     
 ############################################################
