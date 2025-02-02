@@ -14,7 +14,7 @@ from lightning.pytorch import LightningDataModule
 
 class Caltech101Dataset(Dataset):
     def __init__(self, dataset_path: str, split: str = None, transform: Optional[transforms.Compose] = None):
-        self.dataset = torch_datasets.Caltech101(dataset_path)
+        self.dataset = torch_datasets.Caltech101(dataset_path, download=False)
         self.split = split
         self.transform = transform
         self.resize_to_224x224 = transforms.Resize((224, 224))
