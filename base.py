@@ -39,7 +39,7 @@ class BaseModel(L.LightningModule):
         if (self.args.dataset == "EuroSAT") or (self.args.dataset == "Caltech-101"):
             preds = torch.argmax(probs, dim=1)
         elif self.args.dataset == "tiny-BEN":
-            preds = (probs > 0.5).long()
+            preds = probs #= (probs > 0.5).long()
         else:
             raise Exception(f"args.task=={self.args.task} not handled in training_step!")
 
