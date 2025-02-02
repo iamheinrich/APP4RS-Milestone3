@@ -161,16 +161,16 @@ class ExperimentRunner:
 
         arch_name_and_pretrained = [
             ["--arch_name","CustomCNN"],
-            ["--arch_name","ResNet18"],
-            ["--arch_name","ResNet18","--pretrained"],
-            ["--arch_name","ConvNeXt-Nano"],
-            ["--arch_name","ConvNeXt-Nano","--pretrained"],
-            ["--arch_name","ViT-Tiny"],
-            ["--arch_name","ViT-Tiny","--pretrained"],
+            #["--arch_name","ResNet18"],                                                                                    TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ResNet18","--pretrained"],                                                                     TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ConvNeXt-Nano"],                                                                               TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ConvNeXt-Nano","--pretrained"],                                                                TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ViT-Tiny"],                                                                                    TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+            #["--arch_name","ViT-Tiny","--pretrained"],                                                                     TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
         ]
 
         for dataset_name, ds_config in self.datasets.items():
-            if(dataset_name=="Caltech-101"):
+            if (dataset_name=="Caltech-101") or (dataset_name=="EuroSAT"):#                                                 TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
                 continue
             base_cmd = self.base_command + fixed_parameters + [
                 "--task", ds_config["task"],
@@ -187,8 +187,8 @@ class ExperimentRunner:
 
                 print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropout,{dataset_name}")
                 self._run_command(base_cmd + transformer_sensitive_cmd)
-                print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropless,{dataset_name}")
-                self._run_command(base_cmd + transformer_sensitive_cmd + ["--dropout"])
+                #print(f"\nRunning {arch_and_pre[1]},{arch_and_pre[-1]},Dropless,{dataset_name}")                           TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
+                #self._run_command(base_cmd + transformer_sensitive_cmd + ["--dropout"])                                    TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
 
 def main():
     # Create experiment runner
@@ -201,16 +201,16 @@ def main():
     os.makedirs(features_dir, exist_ok=True)
     
     # Run feature extraction study experiment
-    print("Task 7: Starting Feature Extraction Study...")
-    runner.run_feature_extraction_study()
+    #print("Task 7: Starting Feature Extraction Study...")
+    #runner.run_feature_extraction_study()
     
     # Run t-SNE analysis
-    print("Task 7: Starting t-SNE Analysis...")
-    run_tsne_analysis(features_dir, "./attachments/")
+    #print("Task 7: Starting t-SNE Analysis...")
+    #run_tsne_analysis(features_dir, "./attachments/")
 
     # # Run multi-model benchmark experiment
-    # print("Task 6: Starting Multi Model Benchmark Experiment...")
-    # runner.run_multi_model_benchmark_experiment()
+    print("Task 6: Starting Multi Model Benchmark Experiment...")
+    runner.run_multi_model_benchmark_experiment()
 
     # # Run augmentation study experiment
     # print("Task 9: Starting Data Augmentation Study...")

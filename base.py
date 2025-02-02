@@ -25,13 +25,7 @@ class BaseModel(L.LightningModule):
     def forward(self, x):
         return self.model(x)
 
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        #TODO check whether flattening of x necessary?  probably not
-        x_hat  = self.model(x) # timm models only return logits not probs
-        batch_loss = self.criterion(x_hat, y)
-
-        #turn logits to probabilities for logging
+    def logits_to_probs(self,x_hat):
         if self.args.task == "slc":
             probabilities = torch.softmax(x_hat, dim=1)
         elif self.args.task == "mlc":
@@ -39,10 +33,41 @@ class BaseModel(L.LightningModule):
         else:
             raise Exception(f"args.task=={self.args.task} not handled in training_step!")
 
+        return probabilities
+    
+    def probs_to_preds(self,probs):
+        if (self.args.dataset == "EuroSAT") or (self.args.dataset == "Caltech-101"):
+            preds = torch.argmax(probs, dim=1)
+        elif self.args.dataset == "tiny-BEN":
+            preds = probs #= (probs > 0.5).long()
+        else:
+            raise Exception(f"args.task=={self.args.task} not handled in training_step!")
+
+        return preds
+
+    def ds_based_argsmax(self,vec):
+        if self.args.task == "slc":
+            reformated = torch.argmax(vec, dim=1)
+        elif (self.args.task == "mlc") or (self.args.dataset == "Caltech-101"):
+            reformated = vec
+        else:
+            raise Exception(f"args.task=={self.args.task} not handled in training_step!")
+
+        return reformated
+
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        x_hat  = self.model(x) # timm models only return logits not probs
+        batch_loss = self.criterion(x_hat, y)
+
+        #turn logits to probabilities for logging
+        probabilities = self.logits_to_probs(x_hat=x_hat)
+
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.training_step_outputs.append(output)
 
-        self.metric_collection.update(probabilities, y)
+        self.metric_collection.update(self.probs_to_preds(probabilities), (self.ds_based_argsmax(y)).long()) # Cast to long type for metrics
 
         return batch_loss #what we return is irrelevant in latest lightning version
 
@@ -52,17 +77,12 @@ class BaseModel(L.LightningModule):
         batch_loss = self.criterion(x_hat, y)
 
         #turn logits to probabilities for logging
-        if self.args.task == "slc":
-            probabilities = torch.softmax(x_hat, dim=1)
-        elif self.args.task == "mlc":
-            probabilities = torch.sigmoid(x_hat)
-        else:
-            raise Exception(f"args.task=={self.args.task} not handled in validation_step!")
+        probabilities = self.logits_to_probs(x_hat=x_hat)
 
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.validation_step_outputs.append(output)
 
-        self.metric_collection.update(probabilities, y)
+        self.metric_collection.update(self.probs_to_preds(probabilities), (self.ds_based_argsmax(y)).long()) # Cast to long type for metrics
 
         return output
 
@@ -72,26 +92,18 @@ class BaseModel(L.LightningModule):
         batch_loss = self.criterion(x_hat, y)
 
         #turn logits to probabilities for logging
-        if self.args.task == "slc":
-            probabilities = torch.softmax(x_hat, dim=1)
-        elif self.args.task == "mlc":
-            probabilities = torch.sigmoid(x_hat)
-        else:
-            raise Exception(f"args.task=={self.args.task} not handled in test_step!")
+        probabilities = self.logits_to_probs(x_hat=x_hat)
 
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.test_step_outputs.append(output)
 
-        self.metric_collection.update(probabilities, y)
+        self.metric_collection.update(self.probs_to_preds(probabilities), (self.ds_based_argsmax(y)).long()) # Cast to long type for metrics
 
         return output
 
     def on_train_epoch_end(self):
         """
         Log the tracked metrics for the trainingset after each epoch
-        unpack the list of outputs and logs the respective metrics TODO TODO TODO TODO TODO why unpack list?
-        
-        metrics = self.metric_collection(probabilities, labels) -- after unpacking list?
         """
         metrics = self.metric_collection.compute()
 
@@ -102,6 +114,7 @@ class BaseModel(L.LightningModule):
             else:
                 self.log(f"train_{metric_name}", computed, prog_bar=True)
 
+        torch.cuda.synchronize() # TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK wait for wandb
         self.metric_collection.reset()
         self.training_step_outputs.clear()
 
@@ -119,6 +132,7 @@ class BaseModel(L.LightningModule):
             else:
                 self.log(f"validation_{metric_name}", computed, prog_bar=True)
 
+        torch.cuda.synchronize() # TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK wait for wandb
         self.metric_collection.reset()
         self.validation_step_outputs.clear()
 
@@ -137,6 +151,7 @@ class BaseModel(L.LightningModule):
             else:
                 self.log(f"test_{metric_name}", computed, prog_bar=True)
 
+        torch.cuda.synchronize() # TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK  TODO RECHECK wait for wandb
         self.metric_collection.reset()
         self.test_step_outputs.clear()
 
