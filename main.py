@@ -2,6 +2,13 @@ import subprocess
 import os
 from tsne_analysis import run_tsne_analysis
 
+#for statistics trick
+from data.data_BEN import BENIndexableLMDBDataset
+from data.data_EuroSAT import EuroSATIndexableLMDBDataset
+from data.caltech101 import Caltech101Dataset
+import torch
+from utils import compute_channel_statistics_rs, compute_channel_statistics_rgb
+
 class ExperimentRunner:
     """ Class to run experiments """
     def __init__(self):
@@ -59,7 +66,7 @@ class ExperimentRunner:
         else:
             print("Training failed!")
 
-    def run_augmentation_study(self) -> None:
+    def run_augmentation_study(self,stats_dict) -> None:
         """Run augmentation study experiment."""
         augmentations = [
             "--apply_random_resize_crop",
@@ -93,6 +100,9 @@ class ExperimentRunner:
 
             # Construct base command for this dataset
             base_cmd = self.base_command + [
+                "--mean",str(stats_dict[dataset_name][0]),
+                "--std",str(stats_dict[dataset_name][1]),
+                "--perc",str(stats_dict[dataset_name][2]),
                 "--task", config["task"],
                 "--dataset", dataset_name,
                 "--num_channels", config["num_channels"],
@@ -141,7 +151,7 @@ class ExperimentRunner:
         self._run_command(self.base_command + fixed_parameters)
     
     
-    def run_multi_model_benchmark_experiment(self) -> None:
+    def run_multi_model_benchmark_experiment(self,stats_dict) -> None:
         """Task 6: Run multi-model benchmark experiment."""
         fixed_parameters = [
             "--learning_rate", "0.001",
@@ -173,6 +183,9 @@ class ExperimentRunner:
             if (dataset_name=="Caltech-101") or (dataset_name=="tiny-BEN"):#                                                 #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
                 continue
             base_cmd = self.base_command + fixed_parameters + [
+                "--mean",str(stats_dict[dataset_name][0]),
+                "--std",str(stats_dict[dataset_name][1]),
+                "--perc",str(stats_dict[dataset_name][2]),
                 "--task", ds_config["task"],
                 "--dataset", dataset_name,
                 "--num_channels", ds_config["num_channels"],
@@ -191,6 +204,40 @@ class ExperimentRunner:
                 #self._run_command(base_cmd + transformer_sensitive_cmd + ["--dropout"])                                    #TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO    SINGLE 
 
 def main():
+    ds_statistics = {}
+    tmp_train_dataset =BENIndexableLMDBDataset(
+        lmdb_path="./untracked-files/BigEarthNet/BigEarthNet.lmdb",
+        metadata_parquet_path="./untracked-files/BigEarthNet/BigEarthNet.parquet",
+        bandorder=["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B11", "B12", "B8A"],
+        split='train',
+        transform=None
+    )
+    temp_train_dataloader = torch.utils.data.DataLoader(tmp_train_dataset,batch_size=32,num_workers=4,shuffle=False)
+    ds_statistics["tiny-BEN"] = compute_channel_statistics_rs(temp_train_dataloader)
+
+    tmp_train_dataset = EuroSATIndexableLMDBDataset(
+        lmdb_path="./untracked-files/EuroSAT/EuroSAT.lmdb",
+        metadata_parquet_path="./untracked-files/EuroSAT/EuroSAT.parquet",
+        bandorder=["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B10", "B11", "B12", "B8A"],
+        split='train',
+        transform=None
+    )
+    temp_train_dataloader = torch.utils.data.DataLoader(tmp_train_dataset,batch_size=32,num_workers=4,shuffle=False)
+    ds_statistics["EuroSAT"] = compute_channel_statistics_rs(temp_train_dataloader)
+
+    tmp_train_dataset = Caltech101Dataset(
+        dataset_path="./untracked-files/caltech101",
+        split='train',
+        transform=None
+    )
+    temp_train_dataloader = torch.utils.data.DataLoader(tmp_train_dataset,batch_size=32,num_workers=4,shuffle=False)
+    ds_statistics["Caltech-101"] = compute_channel_statistics_rgb(temp_train_dataloader)
+
+
+############################################################
+#  UNTIL HERE STATISTICS TRICK FOR EFFECIENT SERVER RUNS     
+############################################################
+
     # Create experiment runner
     runner = ExperimentRunner()
     
@@ -210,11 +257,11 @@ def main():
 
     # # Run multi-model benchmark experiment
     print("Task 6: Starting Multi Model Benchmark Experiment...")
-    runner.run_multi_model_benchmark_experiment()
+    runner.run_multi_model_benchmark_experiment(stats_dict=ds_statistics)
 
     # # Run augmentation study experiment
-    # print("Task 9: Starting Data Augmentation Study...")
-    # runner.run_augmentation_study()
+    print("Task 9: Starting Data Augmentation Study...")
+    runner.run_augmentation_study(stats_dict=ds_statistics)
 
 
 if __name__ == "__main__":

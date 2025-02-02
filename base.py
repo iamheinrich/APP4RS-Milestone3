@@ -46,9 +46,9 @@ class BaseModel(L.LightningModule):
         return preds
 
     def ds_based_argsmax(self,vec):
-        if self.args.task == "slc":
+        if (self.args.dataset == "EuroSAT"):
             reformated = torch.argmax(vec, dim=1)
-        elif (self.args.task == "mlc") or (self.args.dataset == "Caltech-101"):
+        elif (self.args.dataset == "tiny-BEN") or (self.args.dataset == "Caltech-101"):
             reformated = vec
         else:
             raise Exception(f"args.task=={self.args.task} not handled in training_step!")
