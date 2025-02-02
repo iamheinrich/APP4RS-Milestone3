@@ -14,8 +14,6 @@ from safetensors.numpy import load as load_np_safetensor
 from torch.utils.data import Dataset
 from torch.utils.data import IterableDataset
 
-from utils import compute_channel_statistics_rs
-from data.transform import get_remote_sensing_transform, build_rs_transform_pipeline
 
 def _hash(data):
     return md5(str(data).encode()).hexdigest()
@@ -66,16 +64,6 @@ class EuroSATIndexableLMDBDataset(Dataset):
         self.keys = self.metadata['patch_name'].tolist()
         # sort keys to ensure reproducibility
         self.keys.sort()
-        # Set default transform if none provided
-        if transform is None:
-            transform = build_rs_transform_pipeline(
-                percentile_values=[10000] * len(bandorder),  # Example percentile values
-                mean=[0.5] * len(bandorder),
-                std=[0.5] * len(bandorder),
-                apply_sharpness=True,
-                apply_contrast=True,
-                apply_grayscale=True
-            )
         self.transform = transform
 
     def __len__(self):
@@ -283,7 +271,8 @@ class EuroSATDataModule(LightningDataModule):
             base_path: Optional[str] = None,
             lmdb_path: Optional[str] = None,
             metadata_parquet_path: Optional[str] = None,
-            augmentation_flags: dict = None
+            train_transform = None,
+            val_test_transform =None
     ):
         """
         DataModule for the EuroSAT dataset.
@@ -303,7 +292,6 @@ class EuroSATDataModule(LightningDataModule):
         self.num_workers = num_workers
         self.ds_type = ds_type
         self.bandorder = bandorder
-        self.augmentation_flags = augmentation_flags or {}
         if ds_type == 'indexable_tif':
             assert base_path is not None, 'base_path must be provided for indexable_tif dataset'
             self.dataset = partial(EuroSATIndexableTifDataset,
@@ -330,50 +318,20 @@ class EuroSATDataModule(LightningDataModule):
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
-        
-        # Adding mean, std and percentile values for training dataset
-        self.mean = None
-        self.std = None
-        self.percentile = None
+
+        self.train_transform = train_transform
+        self.val_test_transform = val_test_transform
 
     def setup(self, stage=None):
         if stage == 'fit' or stage is None:
             # First create dataset without transforms to compute statistics so that we don't have to laod the dataset twice
             self.train_dataset = self.dataset(
                 split='train',
-                transform=None  # No transforms for statistics computation
+                transform=self.train_transform  # No transforms for statistics computation
             )
             
-            temp_train_dataloader = torch.utils.data.DataLoader(
-                self.train_dataset,
-                batch_size=self.batch_size,
-                num_workers=self.num_workers,
-                shuffle=False  # No need to shuffle for statistics
-            )
-            
-            # Compute statistics using only training data to prevent leakage
-            self.mean, self.std, self.percentile = compute_channel_statistics_rs(
-                temp_train_dataloader
-            )
-            
-            # Training transform includes augmentations
-            train_transform = get_remote_sensing_transform(
-                percentile_values=self.percentile,
-                mean=self.mean,
-                std=self.std,
-                **self.augmentation_flags
-            )
-            
-            # Validation and test transforms apply normalization only
-            # No augmentations for validation and test
-            self.val_test_transform = get_remote_sensing_transform(
-                percentile_values=self.percentile,
-                mean=self.mean,
-                std=self.std
-                )
-            
-            # Update the transform attribute of the existing train_dataset
-            self.train_dataset.transform = train_transform
+            #REMOVE START
+            # REMOVE END
             
             # Validation dataset without transforms
             self.val_dataset = self.dataset(

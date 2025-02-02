@@ -2,11 +2,9 @@
 
 import numpy as np
 from typing import Union, Tuple, List
-from data.data_BEN import BENDataModule
-from data.data_EuroSAT import EuroSATDataModule
-from data.caltech101 import Caltech101DataModule
 import torch
-
+import os
+from lightning.pytorch.callbacks import Callback
 
 def compute_channel_statistics_rs(
     dataloader: torch.utils.data.DataLoader,
@@ -118,4 +116,59 @@ def compute_channel_statistics_rgb(
 
     return means, stds
 
+class FeatureExtractionCallback(Callback):
+    """Extracts penultimate feature representations at epochs 5 and 10."""
 
+    def __init__(self):
+        super().__init__()
+        self.feature_representations = []
+        self.labels = []
+        # Create both directories
+        os.makedirs("./untracked-files/features", exist_ok=True)
+        os.makedirs("./untracked-files/features/extracted", exist_ok=True)
+
+    def on_fit_start(self, trainer, pl_module):
+        """Register hook on global pooling layer on forward pass."""
+        assert hasattr(pl_module.model, 'global_pool'), "Global pooling layer not found with model.global_pool"
+        
+        # Hook function to collect activations
+        def hook_function(module, input, output):
+            # Check if trainer is in relevant epoch AND in training phase
+            if trainer.current_epoch + 1 in [5, 10] and pl_module.training:  # Only collect during training
+                feature_representation = output.detach().cpu().half()  # Convert to float16
+                assert feature_representation.dtype == torch.float16, "Feature representation is not float16"
+                self.feature_representations.append(feature_representation.numpy())  # Accumulate features
+        
+        self.hook = pl_module.model.global_pool.register_forward_hook(hook_function)
+    
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        """Store labels for each batch (ensuring correct order)."""
+        epoch = trainer.current_epoch + 1  # starts usually with 0 
+        _, labels = batch 
+        if epoch in [5, 10]:
+            # Convert one-hot encoded labels to class indices
+            label_indices = torch.argmax(labels, dim=1)
+            self.labels.extend(label_indices.cpu().numpy())
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        """Save feature representations and labels at epochs 5 and 10."""
+        epoch = trainer.current_epoch + 1  # starts usually with 0 
+        if epoch in [5, 10] and self.feature_representations:
+            features = np.concatenate(self.feature_representations, axis=0)  # Concatenate all batch features
+            labels = np.array(self.labels)
+            
+            # Verify dimensions match
+            assert len(features) == len(labels), f"Mismatch between features ({len(features)}) and labels ({len(labels)})"
+            
+            # Save to features/extracted (for version control)
+            np.save(f"./untracked-files/features/extracted/epoch_{epoch}_features.npy", features)
+            np.save(f"./untracked-files/features/extracted/epoch_{epoch}_labels.npy", labels)
+            
+            print(f"Saved features and labels for epoch {epoch}")
+            # Clear buffers after saving
+            self.feature_representations.clear()
+            self.labels.clear()
+
+    def on_fit_end(self, trainer, pl_module):
+        """Remove hook."""
+        self.hook.remove()

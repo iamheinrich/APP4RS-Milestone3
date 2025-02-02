@@ -76,7 +76,7 @@ class Uint16NormalizeNumpy:
         # x shape => (H, W, C), probably dtype uint16 or float
         if x.ndim != 3:
             raise ValueError(f"Expected (H, W, C), got shape {x.shape}")
-        assert x.dtype == np.uint16, f"Expected dtype uint16, got {x.dtype}"
+        #assert x.dtype == np.uint16, f"Expected dtype uint16, got {x.dtype}"
 
         h, w, c = x.shape
         if len(self.percentile_values) != c:
@@ -120,14 +120,14 @@ class RandomResizeCropWrapper(AlbumentationsWrapper):
     # Works with float32 and uint8
     # Should work with any number of channels
     def __init__(self):
-        super().__init__(A.RandomResizedCrop(height=100, width=100))
+        super().__init__(A.RandomResizedCrop(height=112, width=112)) #TODO outputdim == inputdim??
 
 class CutOutWrapper(AlbumentationsWrapper):
     # Works with float32 and uint8
     # Seems to work with any number of channels 
     # Using float values for height and width to define fractions, which should work for uint8 and float32
     def __init__(self):
-        super().__init__(A.CoarseDropout(hole_height_range=(0.05,0.05), hole_width_range=(0.05,0.05), fill='random'))
+        super().__init__(A.CoarseDropout(hole_height_range=(0.05,0.05), hole_width_range=(0.05,0.05), fill_value='random'))
 
 class BrightnessWrapper(AlbumentationsWrapper):
     # Works with float32 and uint8
@@ -151,7 +151,7 @@ class HorizontalVerticalFlipWrapper(AlbumentationsWrapper):
     #       datatypes ?
     # Works with any number of channels
     def __init__(self):
-        transform = T.Compose([
+        transform = A.Compose([
             A.HorizontalFlip(),
             A.VerticalFlip()
         ])

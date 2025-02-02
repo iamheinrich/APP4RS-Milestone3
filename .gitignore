@@ -6,3 +6,5 @@ untracked-files/
 /dataset_conversion
 .vscode
 /wandb
+pg.ipynb
+attachments
