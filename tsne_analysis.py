@@ -15,6 +15,9 @@ def run_tsne_analysis(features_dir, output_dir):
         features = np.load(os.path.join(features_dir, f"epoch_{epoch}_features.npy"))
         labels = np.load(os.path.join(features_dir, f"epoch_{epoch}_labels.npy"))
         
+        # Verify dimensions match (should always be true due to collection process)
+        assert len(features) == len(labels), f"Unexpected mismatch between features ({len(features)}) and labels ({len(labels)})"
+        
         # Perform t-SNE
         print("Running t-SNE...")
         tsne = TSNE(random_state=42)

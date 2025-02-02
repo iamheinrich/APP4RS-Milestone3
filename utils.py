@@ -133,8 +133,8 @@ class FeatureExtractionCallback(Callback):
         
         # Hook function to collect activations
         def hook_function(module, input, output):
-            # Check if trainer is in relevant epoch
-            if trainer.current_epoch + 1 in [5, 10]:  # Adjust for 1-based indexing
+            # Check if trainer is in relevant epoch AND in training phase
+            if trainer.current_epoch + 1 in [5, 10] and pl_module.training:  # Only collect during training
                 feature_representation = output.detach().cpu().half()  # Convert to float16
                 assert feature_representation.dtype == torch.float16, "Feature representation is not float16"
                 self.feature_representations.append(feature_representation.numpy())  # Accumulate features
@@ -156,6 +156,9 @@ class FeatureExtractionCallback(Callback):
         if epoch in [5, 10] and self.feature_representations:
             features = np.concatenate(self.feature_representations, axis=0)  # Concatenate all batch features
             labels = np.array(self.labels)
+            
+            # Verify dimensions match
+            assert len(features) == len(labels), f"Mismatch between features ({len(features)}) and labels ({len(labels)})"
             
             # Save to features/extracted (for version control)
             np.save(f"./untracked-files/features/extracted/epoch_{epoch}_features.npy", features)
