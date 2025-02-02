@@ -35,15 +35,25 @@ class BaseModel(L.LightningModule):
 
         return probabilities
     
-    def argsmax_if_slc(self,vec):
-        if self.args.task == "slc":
-            preds = torch.argmax(vec, dim=1)
-        elif self.args.task == "mlc":
-            preds = vec
+    def probs_to_preds(self,probs):
+        if (self.args.dataset == "EuroSAT") or (self.args.dataset == "Caltech-101"):
+            preds = torch.argmax(probs, dim=1)
+        elif self.args.dataset == "tiny-BEN":
+            preds = (probs > 0.5).long()
         else:
             raise Exception(f"args.task=={self.args.task} not handled in training_step!")
 
         return preds
+
+    def ds_based_argsmax(self,vec):
+        if self.args.task == "slc":
+            reformated = torch.argmax(vec, dim=1)
+        elif (self.args.task == "mlc") or (self.args.dataset == "Caltech-101"):
+            reformated = vec
+        else:
+            raise Exception(f"args.task=={self.args.task} not handled in training_step!")
+
+        return reformated
 
 
     def training_step(self, batch, batch_idx):
@@ -57,7 +67,7 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.training_step_outputs.append(output)
 
-        self.metric_collection.update(self.argsmax_if_slc(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
+        self.metric_collection.update(self.probs_to_preds(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
 
         return batch_loss #what we return is irrelevant in latest lightning version
 
@@ -72,7 +82,7 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.validation_step_outputs.append(output)
 
-        self.metric_collection.update(self.argsmax_if_slc(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
+        self.metric_collection.update(self.probs_to_preds(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
 
         return output
 
@@ -87,7 +97,7 @@ class BaseModel(L.LightningModule):
         output = {"labels": y, "probabilities": probabilities, "loss": batch_loss}
         self.test_step_outputs.append(output)
 
-        self.metric_collection.update(self.argsmax_if_slc(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
+        self.metric_collection.update(self.probs_to_preds(probabilities), self.argsmax_if_slc(y).long()) # Cast to long type for metrics
 
         return output
 
